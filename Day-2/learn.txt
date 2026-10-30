@@ -1,0 +1,8 @@
+1.reading images
+2.reading videos
+3.reading webcamera
+4.basic function
+5. image croping and resize
+6.shape and text
+7.wrap praspectivr
+8.joining image
