@@ -1,0 +1,80 @@
+Day-3: Convolutional Neural Networks (CNN)
+==========================================
+Quick revision notes. Full explanations, diagrams and examples: README.md
+
+
+1. Deep learning network types
+------------------------------
+- ANN (Artificial Neural Network)    -> tabular data
+- CNN (Convolutional Neural Network) -> grid data: images, video frames
+- RNN (Recurrent Neural Network)     -> sequence data: text, audio, time series
+
+Main job of a CNN: feature extraction (it learns edges, textures, shapes by itself).
+
+
+2. What is a CNN?
+-----------------
+- A neural network built for data with a grid-like topology.
+- An image is a grid of pixels: H x W (grayscale) or H x W x 3 (colour).
+- Neighbouring pixels carry meaning, and a CNN keeps that spatial structure.
+
+
+3. ANN vs CNN
+-------------
+- ANN -> matrix multiplication (every input connects to every neuron)
+- CNN -> convolution (a small kernel/filter slides over the image)
+- CNN advantages: local connectivity + weight sharing = far fewer parameters
+
+
+4. History
+----------
+- 1998: Yann LeCun, AT&T Bell Labs
+- Paper: "Gradient-Based Learning Applied to Document Recognition"
+- Model: LeNet-5
+- Used for document recognition:
+    a. handwritten digits
+    b. letters / characters
+
+
+5. CNN architecture
+-------------------
+Input -> [Convolution + ReLU -> Pooling] x N -> Flatten -> Fully Connected -> Softmax
+
+- Feature extraction        : Convolution + ReLU, Pooling
+- Classification            : Flatten, Fully Connected layers
+- Probabilistic distribution: Softmax
+(See the lecture screenshot in this folder.)
+
+
+6. Famous CNN models
+--------------------
+- AlexNet   (2012)
+- VGG16, VGG19 (2014)
+- Inception / GoogLeNet (2014)
+- ResNet-50 (2015)
+- Available pre-trained in Keras Applications (transfer learning)
+
+
+7. Why not use an ANN for images?
+---------------------------------
+1. High computation cost  - too many weights (224x224x3 image = 150,528 inputs)
+2. Overfitting            - so many weights that the model memorises the training data
+3. Loss of important features - flattening the image destroys pixel neighbourhoods
+
+
+8. Maths concepts
+-----------------
+- Convolution: multiply kernel with image patch, then sum
+- Output size = floor((n + 2p - f) / s) + 1
+    n = input size, f = filter size, p = padding, s = stride
+- Conv parameters = (f x f x C_in + 1) x C_out
+- ReLU(x) = max(0, x)
+- Max pooling: keep the largest value in each window
+- Softmax: turns scores into probabilities that sum to 1
+
+
+9. Overfitting problem
+----------------------
+- Model does well on training data but badly on new data.
+- Fixes: more data, data augmentation, dropout, pooling,
+  L1/L2 regularisation, early stopping, transfer learning.

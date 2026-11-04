@@ -38,6 +38,19 @@ Open the notebooks from inside their day folder (for example `Day-2/`) so the re
 - **Warp perspective**: map four points to a flat, top-down view with `cv2.getPerspectiveTransform` and `cv2.warpPerspective`.
 - **Joining images**: put images side by side with `np.hstack` and stack them with `np.vstack`, then display them inline with matplotlib.
 
+## Day-3: Convolutional Neural Networks (theory)
+
+Full notes with diagrams, worked examples, and references: **[Day-3/README.md](Day-3/README.md)**
+
+- **Where CNN fits**: deep learning has ANN (tabular data), CNN (grid data like images), and RNN (sequences).
+- **What a CNN is**: a network for data with a grid-like topology. ANNs use matrix multiplication; CNNs use convolution, sliding a small learnable kernel over the image.
+- **History**: Yann LeCun's LeNet-5 (AT&T Bell Labs, 1998) for document recognition: handwritten digits and characters.
+- **Architecture**: Convolution + ReLU → Pooling (feature extraction) → Flatten → Fully connected (classification) → Softmax (probabilities).
+- **Maths**: convolution step by step, output size `⌊(n + 2p − f)/s⌋ + 1`, parameter count, ReLU, max pooling, softmax.
+- **Why not an ANN for images**: high computation cost, overfitting, and loss of spatial features when the image is flattened.
+- **Overfitting**: what it looks like and how to reduce it (data augmentation, dropout, early stopping, transfer learning).
+- **Famous models**: AlexNet, VGG16/19, Inception, ResNet-50, and how to load them with Keras Applications.
+
 ## Notes
 
 - **Video files aren't in the repo.** `.mp4` and other video files are git-ignored because they exceed GitHub's 100 MB file limit. To run the video notebook, put your own video at `Day-2/data/video.mp4`.
