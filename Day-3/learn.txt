@@ -1,0 +1,144 @@
+Day-3: Convolutional Neural Networks (CNN)
+==========================================
+Quick revision notes. Full explanations, diagrams and examples: README.md
+
+
+1. Deep learning network types
+------------------------------
+- ANN (Artificial Neural Network)    -> tabular data
+- CNN (Convolutional Neural Network) -> grid data: images, video frames
+- RNN (Recurrent Neural Network)     -> sequence data: text, audio, time series
+
+Main job of a CNN: feature extraction (it learns edges, textures, shapes by itself).
+
+
+2. What is a CNN?
+-----------------
+- A neural network built for data with a grid-like topology.
+- An image is a grid of pixels: H x W (grayscale) or H x W x 3 (colour).
+- Neighbouring pixels carry meaning, and a CNN keeps that spatial structure.
+
+
+3. ANN vs CNN
+-------------
+- ANN -> matrix multiplication (every input connects to every neuron)
+- CNN -> convolution (a small kernel/filter slides over the image)
+- CNN advantages: local connectivity + weight sharing = far fewer parameters
+
+
+4. History
+----------
+- 1998: Yann LeCun, AT&T Bell Labs
+- Paper: "Gradient-Based Learning Applied to Document Recognition"
+- Model: LeNet-5
+- Used for document recognition:
+    a. handwritten digits
+    b. letters / characters
+
+
+5. CNN architecture
+-------------------
+Input -> [Convolution + ReLU -> Pooling] x N -> Flatten -> Fully Connected -> Softmax
+
+- Feature extraction        : Convolution + ReLU, Pooling
+- Classification            : Flatten, Fully Connected layers
+- Probabilistic distribution: Softmax
+(See the lecture screenshot in this folder.)
+
+
+6. CNN building blocks
+----------------------
+1. Convolution layer   - filters slide over the image and produce feature maps
+2. Activation function - ReLU(x) = max(0, x), applied after every convolution
+3. Pooling layer       - shrinks the feature map (max pooling / average pooling)
+4. Padding             - adds a border of zeros so the output size doesn't shrink
+                         ("valid" = no padding, "same" = output size = input size)
+5. Stride              - how many pixels the filter moves at each step
+6. Fully connected (FC) layer - flattened features -> final classification
+
+
+7. Filters (kernels)
+--------------------
+- A filter is a small matrix of weights: 3x3, 5x5 or 7x7.
+- It slides over the image and detects one pattern (edge, corner, texture).
+- In a CNN the filter values are learned during training.
+
+Sobel edge filter (hand-made filter for edge detection):
+
+  Vertical edge detection      Horizontal edge detection
+     [ -1   0  +1 ]               [ -1  -2  -1 ]
+     [ -2   0  +2 ]               [  0   0   0 ]
+     [ -1   0  +1 ]               [ +1  +2  +1 ]
+
+
+8. Famous CNN models
+--------------------
+- LeNet-5   (1998)
+- AlexNet   (2012)
+- VGG16, VGG19 (2014)
+- Inception / GoogLeNet (2014)
+- ResNet-50 (2015)
+- Available pre-trained in Keras Applications (transfer learning)
+
+
+9. Why not use an ANN for images?
+---------------------------------
+1. High computation cost  - too many weights (224x224x3 image = 150,528 inputs)
+2. Overfitting            - so many weights that the model memorises the training data
+3. Loss of important features - flattening the image destroys pixel neighbourhoods
+
+
+10. Maths concepts
+------------------
+- Convolution: multiply kernel with image patch, then sum
+- Output size = floor((n + 2p - f) / s) + 1
+    n = input size, f = filter size, p = padding, s = stride
+- Conv parameters = (f x f x C_in + 1) x C_out
+- ReLU(x) = max(0, x)
+- Max pooling: keep the largest value in each window
+- Softmax: turns scores into probabilities that sum to 1
+
+
+11. Backpropagation in CNN
+--------------------------
+- Same idea as in an ANN: forward pass -> loss -> gradients -> update weights.
+- Here the weights being updated are the filter values (and FC weights).
+- Gradients flow back through FC -> Flatten -> Pooling -> Conv layers.
+
+
+12. Overfitting problem
+-----------------------
+- Model does well on training data but badly on new data.
+- Fixes: more data, data augmentation, dropout, pooling,
+  L1/L2 regularisation, early stopping, transfer learning.
+
+
+13. Data augmentation
+---------------------
+- Create new training images from the existing ones:
+  rotate, flip, zoom, shift, crop, change brightness.
+- More variety in the data -> less overfitting.
+
+
+14. Transfer learning
+---------------------
+- Take a model already trained on a big dataset (e.g. ImageNet).
+- Reuse its feature-extraction layers, train only new final layers.
+- Works well with small datasets and saves training time.
+
+
+15. Project
+-----------
+- Image classification with a CNN.
+
+
+TODO (topics to study)
+----------------------
+[ ] Convolution layers, pooling layers, FC layers, ReLU
+[ ] Padding and stride
+[ ] Sobel filter - vertical / horizontal edge detection
+[ ] Backpropagation in CNN
+[ ] Data augmentation
+[ ] Popular architectures: LeNet, VGG, ResNet, Inception
+[ ] Transfer learning
+[ ] Project: Classification

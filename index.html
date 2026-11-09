@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Computer Vision Learning</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%233157d5%27/%3E%3Cpath d=%27M8 8h16v16H8z%27 fill=%27none%27 stroke=%27%23fff%27 stroke-width=%272%27/%3E%3Cpath d=%27M8 16h16M16 8v16%27 stroke=%27%23fff%27 stroke-width=%271.5%27/%3E%3Crect x=%278%27 y=%278%27 width=%278%27 height=%278%27 fill=%27%23e59400%27/%3E%3C/svg%3E">
+  <meta name="description" content="Day-by-day computer vision practice: OpenCV notebooks, CNN theory, and an interactive convolution lab.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    /* ---------- tokens: dark by default, light when the system asks ---------- */
+    :root {
+      --bg: #0a0d16;
+      --bg-2: #0f1424;
+      --surface: #131a2c;
+      --surface-2: #1a2238;
+      --text: #e8ecf7;
+      --muted: #9aa4c0;
+      --border: #263050;
+      --accent: #7c8cff;
+      --accent-2: #22d3ee;
+      --accent-ink: #0a0d16;
+      --amber: #ffb534;
+      --pos: 124 140 255;
+      --neg: 255 107 129;
+      --glow: rgb(124 140 255 / 0.35);
+      --shadow: 0 20px 60px -20px rgb(0 0 0 / 0.6);
+      --radius: 18px;
+      --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+      color-scheme: dark;
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) {
+        --bg: #f6f7fc; --bg-2: #eef1fa; --surface: #ffffff; --surface-2: #f1f4fb;
+        --text: #151a2d; --muted: #586181; --border: #dde2f0;
+        --accent: #4357e6; --accent-2: #0891b2; --accent-ink: #ffffff; --amber: #d98a00;
+        --pos: 67 87 230; --neg: 225 58 88; --glow: rgb(67 87 230 / 0.22);
+        --shadow: 0 20px 50px -24px rgb(30 40 90 / 0.35);
+        color-scheme: light;
+      }
+    }
+    :root[data-theme="light"] {
+      --bg: #f6f7fc; --bg-2: #eef1fa; --surface: #ffffff; --surface-2: #f1f4fb;
+      --text: #151a2d; --muted: #586181; --border: #dde2f0;
+      --accent: #4357e6; --accent-2: #0891b2; --accent-ink: #ffffff; --amber: #d98a00;
+      --pos: 67 87 230; --neg: 225 58 88; --glow: rgb(67 87 230 / 0.22);
+      --shadow: 0 20px 50px -24px rgb(30 40 90 / 0.35);
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--font); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; }
+    .wrap { max-width: 1160px; margin: 0 auto; padding: 0 16px; }
+    .gradient-text { background: linear-gradient(100deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+    /* ---------- nav ---------- */
+    .nav { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(12px); background: color-mix(in srgb, var(--bg) 78%, transparent); border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+    .nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; gap: 1rem; }
+    .brand { display: flex; align-items: center; gap: .6rem; font-weight: 800; text-decoration: none; letter-spacing: -.01em; }
+    .brand__logo { width: 32px; height: 32px; border-radius: 9px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 6px; }
+    .brand__logo span { background: rgb(255 255 255 / .85); border-radius: 1.5px; }
+    .brand__logo span:nth-child(odd) { background: rgb(255 255 255 / .45); }
+    .nav__links { display: flex; align-items: center; gap: .3rem; }
+    .nav__links a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: .95rem; padding: .45rem .8rem; border-radius: 10px; }
+    .nav__links a:hover { color: var(--text); background: var(--surface-2); }
+    .nav__links .gh { color: var(--text); border: 1px solid var(--border); display: inline-flex; gap: .45rem; align-items: center; }
+    .gh svg { width: 18px; height: 18px; fill: currentColor; }
+
+    /* ---------- buttons ---------- */
+    .btn { display: inline-flex; align-items: center; gap: .55rem; text-decoration: none; font-weight: 600; padding: .85rem 1.35rem; border-radius: 12px; transition: transform .15s, box-shadow .2s, background .2s; }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:focus-visible, .nav__links a:focus-visible, .card a:focus-visible { outline: 3px solid var(--accent-2); outline-offset: 3px; }
+    .btn--primary { color: #fff; background: linear-gradient(100deg, var(--accent), color-mix(in srgb, var(--accent) 50%, var(--accent-2))); box-shadow: 0 10px 30px -8px var(--glow); }
+    .btn--ghost { border: 1px solid var(--border); background: var(--surface); }
+    .btn svg { width: 18px; height: 18px; }
+
+    /* ---------- hero ---------- */
+    .hero { position: relative; overflow: hidden; padding: 5rem 0 4.5rem; }
+    .hero::before { content: ""; position: absolute; inset: -40% -10% auto; height: 720px; background:
+        radial-gradient(40% 50% at 25% 40%, rgb(var(--pos) / .22), transparent 70%),
+        radial-gradient(35% 45% at 80% 30%, rgb(34 211 238 / .16), transparent 70%); pointer-events: none; }
+    .hero::after { content: ""; position: absolute; inset: 0; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 44px 44px; opacity: .25; mask-image: radial-gradient(70% 60% at 50% 30%, #000, transparent); -webkit-mask-image: radial-gradient(70% 60% at 50% 30%, #000, transparent); pointer-events: none; }
+    .hero .wrap { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1.15fr; gap: 3rem; align-items: center; }
+    .hero .wrap > * { min-width: 0; }
+    .eyebrow { display: inline-flex; align-items: center; gap: .5rem; font-size: .85rem; font-weight: 600; color: var(--muted); border: 1px solid var(--border); background: var(--surface); padding: .35rem .8rem; border-radius: 999px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 4px rgb(34 197 94 / .2); }
+    .hero h1 { font-size: clamp(2.2rem, 5.2vw, 3.7rem); line-height: 1.08; letter-spacing: -.035em; margin: 1.1rem 0 1rem; font-weight: 800; }
+    .hero p.lead { font-size: 1.15rem; color: var(--muted); max-width: 540px; margin: 0 0 2rem; }
+    .cta { display: flex; flex-wrap: wrap; gap: .8rem; }
+
+    /* live convolution card */
+    .demo { background: color-mix(in srgb, var(--surface) 88%, transparent); border: 1px solid var(--border); border-radius: 22px; padding: 1.4rem; box-shadow: var(--shadow); backdrop-filter: blur(6px); }
+    .demo__top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; font-size: .85rem; color: var(--muted); }
+    .demo__top b { color: var(--text); font-weight: 600; }
+    .live { display: inline-flex; align-items: center; gap: .4rem; font-weight: 600; color: #22c55e; }
+    .live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pulse 1.6s infinite; }
+    @keyframes pulse { 50% { opacity: .3; } }
+    .demo__stage { display: flex; align-items: center; justify-content: center; gap: .8rem; flex-wrap: nowrap; }
+    .mgrid { --c: 34px; position: relative; display: grid; grid-template-columns: repeat(var(--n), var(--c)); grid-auto-rows: var(--c); gap: 4px; }
+    .mgrid--k { --c: 24px; }
+    .mcell { display: grid; place-items: center; border-radius: 8px; font: 600 .95rem var(--mono); background: var(--surface-2); border: 1px solid var(--border); transition: background .3s, transform .3s; }
+    .mgrid--k .mcell { font-size: .78rem; border-radius: 6px; }
+    .mcell.pos { background: rgb(var(--pos) / var(--a)); }
+    .mcell.neg { background: rgb(var(--neg) / var(--a)); }
+    .mcell.blank { color: transparent; background: var(--surface-2); position: relative; }
+    .mcell.blank::after { content: "?"; position: absolute; color: var(--muted); opacity: .6; }
+    .mcell.now { box-shadow: 0 0 0 2px var(--amber); transform: scale(1.06); }
+    .win { position: absolute; left: calc(var(--x) * (var(--c) + 4px) - 4px); top: calc(var(--y) * (var(--c) + 4px) - 4px); width: calc(3 * (var(--c) + 4px) + 4px); height: calc(3 * (var(--c) + 4px) + 4px); border: 3px solid var(--amber); border-radius: 12px; box-shadow: 0 0 24px -4px var(--amber); transition: left .55s cubic-bezier(.4,.1,.2,1), top .55s cubic-bezier(.4,.1,.2,1); pointer-events: none; }
+    .op { color: var(--muted); font-size: 1.3rem; }
+    .mlabel { font-size: .75rem; color: var(--muted); text-align: center; margin-bottom: .35rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+    .demo__sum { margin-top: 1.1rem; font: 500 .82rem/1.5 var(--mono); background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; padding: .7rem .9rem; overflow-x: auto; white-space: nowrap; color: var(--muted); }
+    .demo__sum b { color: var(--amber); }
+
+    /* ---------- stats ---------- */
+    .stats { border-block: 1px solid var(--border); background: var(--bg-2); }
+    .stats .wrap { display: grid; grid-template-columns: repeat(4, 1fr); }
+    .stat { padding: 1.8rem 1rem; text-align: center; }
+    .stat + .stat { border-left: 1px solid var(--border); }
+    .stat b { display: block; font-size: 2.2rem; font-weight: 800; letter-spacing: -.03em; }
+    .stat span { color: var(--muted); font-size: .92rem; }
+
+    /* ---------- sections ---------- */
+    section.block { padding: 5.5rem 0; }
+    .head { max-width: 640px; margin-bottom: 2.8rem; }
+    .kicker { font: 700 .78rem var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent-2); }
+    .head h2 { font-size: clamp(1.8rem, 3.6vw, 2.5rem); letter-spacing: -.03em; line-height: 1.15; margin: .5rem 0 .7rem; }
+    .head p { color: var(--muted); margin: 0; font-size: 1.05rem; }
+
+    /* timeline */
+    .timeline { position: relative; display: grid; gap: 1.4rem; }
+    .timeline::before { content: ""; position: absolute; left: 27px; top: 10px; bottom: 10px; width: 2px; background: linear-gradient(var(--accent), var(--accent-2), transparent); opacity: .5; }
+    .day { position: relative; display: grid; grid-template-columns: 56px 1fr; gap: 1.3rem; }
+    .day__num { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; font: 800 1.05rem var(--mono); background: var(--surface); border: 1px solid var(--border); position: relative; z-index: 1; }
+    .day--featured .day__num { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border: none; box-shadow: 0 10px 30px -8px var(--glow); }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem 1.6rem; transition: border-color .2s, transform .2s, box-shadow .2s; }
+    .card:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); transform: translateY(-3px); box-shadow: var(--shadow); }
+    .day--featured .card { border-color: color-mix(in srgb, var(--accent) 60%, var(--border)); background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 10%, var(--surface)), var(--surface) 60%); }
+    .card__top { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .8rem; margin-bottom: .4rem; }
+    .card h3 { margin: 0; font-size: 1.3rem; letter-spacing: -.02em; }
+    .badge { font: 700 .7rem var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: .25rem .6rem; border-radius: 999px; background: rgb(34 197 94 / .14); color: #22c55e; }
+    .badge--new { background: rgb(255 181 52 / .15); color: var(--amber); }
+    .card p { color: var(--muted); margin: .3rem 0 1rem; }
+    .tags { display: flex; flex-wrap: wrap; gap: .45rem; margin-bottom: 1.2rem; }
+    .tag { font-size: .8rem; padding: .25rem .65rem; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); }
+    .links { display: flex; flex-wrap: wrap; gap: .6rem 1.2rem; align-items: center; }
+    .arrow-link { font-weight: 600; text-decoration: none; color: var(--accent); display: inline-flex; align-items: center; gap: .3rem; }
+    .arrow-link:hover { text-decoration: underline; }
+    .card .btn { padding: .65rem 1.1rem; font-size: .95rem; }
+
+    /* topics */
+    .topics { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 1.1rem; align-items: start; }
+    .topic-col { padding: 1.4rem 1.1rem 1rem; }
+    .topic-col:hover { transform: none; }
+    .topic-col__head { display: flex; align-items: center; gap: .6rem; margin: 0 .4rem 1rem; }
+    .topic-col__head h3 { font-size: 1.08rem; flex: 1; min-width: 0; line-height: 1.25; }
+    .topic-col__day, .count { white-space: nowrap; flex: none; }
+    .topic-col__day { font: 800 .75rem var(--mono); padding: .3rem .55rem; border-radius: 8px; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+    .count { margin-left: auto; font: 600 .75rem var(--mono); color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: .15rem .6rem; }
+    .tlist { list-style: none; margin: 0; padding: 0; }
+    .tlist a, .tlist .soon { display: grid; grid-template-columns: 24px 1fr; gap: .65rem; padding: .55rem .45rem; border-radius: 10px; text-decoration: none; }
+    .tlist a:hover { background: var(--surface-2); }
+    .tlist a:hover b { color: var(--accent); }
+    .tlist a:focus-visible { outline: 3px solid var(--accent-2); outline-offset: 1px; }
+    .tlist b { display: block; font-weight: 600; font-size: .95rem; line-height: 1.35; }
+    .tlist small { display: block; color: var(--muted); font-size: .83rem; line-height: 1.45; }
+    .tick { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; background: rgb(34 197 94 / .16); color: #22c55e; font-size: .72rem; font-weight: 800; margin-top: 1px; flex: none; }
+    .tick--soon { background: rgb(255 181 52 / .16); color: var(--amber); font-size: .66rem; }
+    .soon { opacity: .75; }
+    .legend { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; color: var(--muted); font-size: .9rem; margin: -1.6rem 0 1.6rem; }
+
+    /* features */
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+    .feature { padding: 1.5rem; }
+    .feature__icon { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 1rem; background: rgb(var(--pos) / .14); color: var(--accent); }
+    .feature__icon svg { width: 24px; height: 24px; }
+    .feature h3 { font-size: 1.08rem; margin: 0 0 .35rem; }
+    .feature p { margin: 0; font-size: .95rem; }
+    .formula { font: 600 clamp(.95rem, 2.4vw, 1.25rem) var(--mono); text-align: center; padding: 1.3rem; margin-top: 2rem; border-radius: var(--radius); border: 1px dashed var(--border); background: var(--bg-2); overflow-x: auto; white-space: nowrap; }
+    .formula span { color: var(--muted); font-weight: 500; font-size: .85em; margin-left: .8rem; }
+
+    /* CTA band */
+    .band { margin: 0 0 5rem; border-radius: 26px; padding: clamp(2rem, 5vw, 3.5rem); text-align: center; position: relative; overflow: hidden; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 85%, #000), color-mix(in srgb, var(--accent-2) 70%, #000)); color: #fff; }
+    .band h2 { font-size: clamp(1.6rem, 3.6vw, 2.4rem); margin: 0 0 .6rem; letter-spacing: -.03em; }
+    .band p { margin: 0 auto 1.6rem; max-width: 560px; opacity: .88; }
+    .band .btn { background: #fff; color: #1b2150; }
+
+    footer { border-top: 1px solid var(--border); padding: 2rem 0 2.5rem; color: var(--muted); font-size: .92rem; }
+    footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; }
+    footer a { color: var(--text); }
+
+    /* reveal on scroll */
+    .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
+    .reveal.in { opacity: 1; transform: none; }
+
+    /* ---------- responsive ---------- */
+    @media (max-width: 1080px) {
+      .hero .wrap { grid-template-columns: 1fr; gap: 2.5rem; }
+      .hero { padding-top: 3.5rem; }
+      .features { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .nav__links a:not(.gh) { display: none; }
+      .stats .wrap { grid-template-columns: repeat(2, 1fr); }
+      .stat:nth-child(3) { border-left: none; }
+      .stat:nth-child(n+3) { border-top: 1px solid var(--border); }
+      .features { grid-template-columns: 1fr; }
+      .mgrid { --c: 30px; }
+      .mgrid--k { --c: 22px; }
+      .demo__stage { flex-wrap: wrap; gap: .9rem 1.2rem; }
+      .demo__stage .op { display: none; }
+      .demo { padding: 1rem; }
+      .day { grid-template-columns: 44px 1fr; gap: .9rem; }
+      .day__num { width: 44px; height: 44px; border-radius: 12px; font-size: .9rem; }
+      .timeline::before { left: 21px; }
+      .card { padding: 1.2rem; }
+      section.block { padding: 4rem 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .reveal { opacity: 1; transform: none; transition: none; }
+      .win, .mcell, .btn, .card { transition: none; }
+      .live::before { animation: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav" aria-label="Main">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Computer Vision Learning home">
+      <span class="brand__logo" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span>
+      CV Learning
+    </a>
+    <div class="nav__links">
+      <a href="#journey">Journey</a>
+      <a href="#topics">Topics</a>
+      <a href="#lab">The Lab</a>
+      <a class="gh" href="https://github.com/shamiulriyad/Computer-Vision-Learning" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow"><span class="dot" aria-hidden="true"></span> Day 4 is live: the Convolution Lab</span>
+      <h1>Learning <span class="gradient-text">Computer Vision</span>, one day at a time.</h1>
+      <p class="lead">From reading images with OpenCV to the maths inside a CNN. Each day is hands-on notebooks, clear notes, and interactive pages you can actually play with.</p>
+      <div class="cta">
+        <a class="btn btn--primary" href="Day-4/convolution_lab.html">
+          Open the Convolution Lab
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+        <a class="btn btn--ghost" href="#journey">See the journey</a>
+      </div>
+    </div>
+
+    <div class="demo" aria-label="Animated example: a 3 by 3 filter sliding over a 5 by 5 input and filling a 3 by 3 feature map">
+      <div class="demo__top"><span><b>Convolution</b> · 5×5 input ⊛ 3×3 kernel</span><span class="live">LIVE</span></div>
+      <div class="demo__stage">
+        <div>
+          <div class="mlabel">Input</div>
+          <div class="mgrid" id="in" style="--n:5"><div class="win" id="win"></div></div>
+        </div>
+        <div class="op" aria-hidden="true">⊛</div>
+        <div>
+          <div class="mlabel">Kernel</div>
+          <div class="mgrid mgrid--k" id="k" style="--n:3"></div>
+        </div>
+        <div class="op" aria-hidden="true">→</div>
+        <div>
+          <div class="mlabel">Feature map</div>
+          <div class="mgrid" id="out" style="--n:3"></div>
+        </div>
+      </div>
+      <div class="demo__sum" id="sum" aria-live="off"></div>
+    </div>
+  </div>
+</header>
+
+<div class="stats">
+  <div class="wrap">
+    <div class="stat"><b class="gradient-text">3</b><span>learning days</span></div>
+    <div class="stat"><b class="gradient-text">38</b><span>topics to learn</span></div>
+    <div class="stat"><b class="gradient-text">8</b><span>hand-calc exercises</span></div>
+    <div class="stat"><b class="gradient-text">22/22</b><span>maths checks passing</span></div>
+  </div>
+</div>
+
+<main>
+  <section class="block" id="journey">
+    <div class="wrap">
+      <div class="head reveal">
+        <span class="kicker">The journey</span>
+        <h2>From pixels to feature maps</h2>
+        <p>Each day builds on the one before. Start anywhere, but the order tells a story.</p>
+      </div>
+
+      <div class="timeline">
+        <article class="day day--featured reveal">
+          <div class="day__num">04</div>
+          <div class="card">
+            <div class="card__top"><h3>The Convolution Operation</h3><span class="badge badge--new">New · Interactive</span></div>
+            <p>How a CNN filter really works, with every multiplication written out: an animated sliding window, stride and padding, multiple filters, and 8 exercises with hidden step-by-step solutions.</p>
+            <div class="tags"><span class="tag">Element-wise ⊙</span><span class="tag">Stride</span><span class="tag">Padding</span><span class="tag">Output size formula</span><span class="tag">Cross-correlation</span></div>
+            <div class="links">
+              <a class="btn btn--primary" href="Day-4/convolution_lab.html">Open the lab</a>
+              <a class="arrow-link" href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-4/README.md" target="_blank" rel="noopener">Read the notes →</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="day reveal">
+          <div class="day__num">03</div>
+          <div class="card">
+            <div class="card__top"><h3>Convolutional Neural Networks</h3><span class="badge">Done</span></div>
+            <p>Where CNNs fit, LeNet to ResNet, filters and Sobel edge detection on real photos, the maths of each layer, backpropagation, data augmentation and transfer learning.</p>
+            <div class="tags"><span class="tag">Architecture</span><span class="tag">Sobel filters</span><span class="tag">Pooling</span><span class="tag">Backprop</span><span class="tag">Transfer learning</span></div>
+            <div class="links">
+              <a class="arrow-link" href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-3/README.md" target="_blank" rel="noopener">Notes with diagrams →</a>
+              <a class="arrow-link" href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-3/filters_demo.ipynb" target="_blank" rel="noopener">Filters notebook →</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="day reveal">
+          <div class="day__num">02</div>
+          <div class="card">
+            <div class="card__top"><h3>OpenCV Fundamentals</h3><span class="badge">Done</span></div>
+            <p>Reading images and video, grayscale, blur and Canny edges, cropping and resizing, drawing shapes and text, warp perspective, and joining images.</p>
+            <div class="tags"><span class="tag">cv2.imread</span><span class="tag">VideoCapture</span><span class="tag">GaussianBlur</span><span class="tag">Canny</span><span class="tag">warpPerspective</span></div>
+            <div class="links">
+              <a class="arrow-link" href="https://github.com/shamiulriyad/Computer-Vision-Learning/tree/main/Day-2" target="_blank" rel="noopener">Browse the 8 notebooks →</a>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="topics" style="padding-top:0">
+    <div class="wrap">
+      <div class="head reveal">
+        <span class="kicker">What you will learn</span>
+        <h2>38 topics, every one marked and linked</h2>
+        <p>Click any topic to jump straight to the place it is taught: a notebook, a section of the notes, or a part of the Convolution Lab.</p>
+      </div>
+      <p class="legend reveal"><span class="tick" aria-hidden="true">✓</span> covered and ready to learn &nbsp;&nbsp; <span class="tick tick--soon" aria-hidden="true">⏳</span> coming soon</p>
+      <div class="topics">
+        <div class="card topic-col reveal">
+          <div class="topic-col__head"><span class="topic-col__day">Day 02</span><h3>OpenCV fundamentals</h3><span class="count">10 topics</span></div>
+          <ul class="tlist">
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-2/reading%20image.ipynb" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Reading images</b><small>cv2.imread, image shape, showing photos inline</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-2/reading%20video.ipynb" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Reading videos</b><small>cv2.VideoCapture frame by frame, quit with q</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-2/basic%20function.ipynb" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Grayscale conversion</b><small>cv2.cvtColor from BGR to gray</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-2/basic%20function.ipynb" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Gaussian blur</b><small>smoothing noise with cv2.GaussianBlur</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-2/basic%20function.ipynb" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Canny edge detection</b><small>finding edges with cv2.Canny</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-2/croping%20image.ipynb" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Cropping</b><small>cutting regions with NumPy slicing</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-2/resize%20image.ipynb" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Resizing</b><small>changing image size with cv2.resize</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-2/shapes%20text.ipynb" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Drawing shapes and text</b><small>line, rectangle, circle, putText</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-2/wrap_prespective.ipynb" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Warp perspective</b><small>a top-down view from four points</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-2/joining%20image.ipynb" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Joining images</b><small>np.hstack and np.vstack</small></span></a></li>
+            <li><span class="soon"><span class="tick tick--soon" aria-hidden="true">⏳</span><span><b>Reading the webcam</b><small>live video from your camera. Coming soon</small></span></span></li>
+          </ul>
+        </div>
+        <div class="card topic-col reveal">
+          <div class="topic-col__head"><span class="topic-col__day">Day 03</span><h3>CNN theory</h3><span class="count">14 topics</span></div>
+          <ul class="tlist">
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-3/README.md#1-where-cnn-fits-in-deep-learning" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Where CNN fits</b><small>ANN vs CNN vs RNN, and which data each suits</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-3/README.md#2-what-is-a-cnn" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>What is a CNN</b><small>networks for grid-shaped data like images</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-3/README.md#3-ann-vs-cnn-matrix-multiplication-vs-convolution" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>ANN vs CNN</b><small>matrix multiplication vs convolution</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-3/README.md#4-history-lenet-5-1998" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>History: LeNet-5</b><small>Yann LeCun&#x27;s 1998 digit recogniser</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-3/README.md#5-cnn-architecture" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>CNN architecture</b><small>conv, pooling, flatten, fully connected, softmax</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-3/README.md#6-filters-kernels-and-edge-detection" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Filters and edge detection</b><small>kernels, Sobel, hand-made vs learned</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-3/README.md#7-the-maths-behind-each-layer" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Maths of each layer</b><small>output size, parameters, ReLU, max pooling</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-3/README.md#8-backpropagation-in-a-cnn" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Backpropagation in a CNN</b><small>how gradients update the kernels</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-3/README.md#9-why-not-use-an-ann-for-images" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Why not an ANN for images</b><small>cost, overfitting, lost spatial structure</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-3/README.md#10-the-overfitting-problem" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Overfitting</b><small>the signs, and how to reduce it</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-3/README.md#11-data-augmentation" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Data augmentation</b><small>flips, rotations, zooms, brightness</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-3/README.md#12-famous-cnn-architectures-and-keras-applications" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Famous architectures</b><small>AlexNet, VGG, Inception, ResNet, Keras Applications</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-3/README.md#13-transfer-learning" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Transfer learning</b><small>freeze an ImageNet model, then fine-tune</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-3/README.md#14-project-image-classification" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Image classification project</b><small>from folders of photos to a trained model</small></span></a></li>
+          </ul>
+        </div>
+        <div class="card topic-col reveal">
+          <div class="topic-col__head"><span class="topic-col__day">Day 04</span><h3>Convolution maths</h3><span class="count">14 topics</span></div>
+          <ul class="tlist">
+            <li><a href="Day-4/convolution_lab.html#setup"><span class="tick" aria-hidden="true">✓</span><span><b>Input and kernel matrices</b><small>images as numbers, filters as weights</small></span></a></li>
+            <li><a href="Day-4/convolution_lab.html#setup"><span class="tick" aria-hidden="true">✓</span><span><b>The convolution equation</b><small>O[i][j] = ΣΣ I[i·S+m][j·S+n] · K[m][n]</small></span></a></li>
+            <li><a href="Day-4/convolution_lab.html#worked"><span class="tick" aria-hidden="true">✓</span><span><b>Step-by-step calculation</b><small>all 9 positions, nothing skipped</small></span></a></li>
+            <li><a href="Day-4/convolution_lab.html#animate"><span class="tick" aria-hidden="true">✓</span><span><b>Sliding-window animation</b><small>Next, Previous, Play, Pause, Reset</small></span></a></li>
+            <li><a href="Day-4/convolution_lab.html#concept-a"><span class="tick" aria-hidden="true">✓</span><span><b>Cross-correlation vs convolution</b><small>why CNNs don&#x27;t flip the kernel</small></span></a></li>
+            <li><a href="Day-4/convolution_lab.html#concept-b"><span class="tick" aria-hidden="true">✓</span><span><b>Element-wise multiplication</b><small>⊙ vs matrix multiplication</small></span></a></li>
+            <li><a href="Day-4/convolution_lab.html#concept-c"><span class="tick" aria-hidden="true">✓</span><span><b>Summation and bias</b><small>nine products into one number, as a dot product</small></span></a></li>
+            <li><a href="Day-4/convolution_lab.html#concept-d"><span class="tick" aria-hidden="true">✓</span><span><b>Stride</b><small>S = 1 vs S = 2, and uneven strides</small></span></a></li>
+            <li><a href="Day-4/convolution_lab.html#concept-e"><span class="tick" aria-hidden="true">✓</span><span><b>Padding</b><small>valid, same and full padding</small></span></a></li>
+            <li><a href="Day-4/convolution_lab.html#concept-f"><span class="tick" aria-hidden="true">✓</span><span><b>Output size formula</b><small>⌊(N − F + 2P) / S⌋ + 1, with a calculator</small></span></a></li>
+            <li><a href="Day-4/convolution_lab.html#concept-g"><span class="tick" aria-hidden="true">✓</span><span><b>Multiple filters</b><small>K filters give K feature maps</small></span></a></li>
+            <li><a href="Day-4/convolution_lab.html#concept-g"><span class="tick" aria-hidden="true">✓</span><span><b>Multi-channel input</b><small>RGB filters and parameter counting</small></span></a></li>
+            <li><a href="Day-4/convolution_lab.html#practice"><span class="tick" aria-hidden="true">✓</span><span><b>Hand-calculation practice</b><small>8 exercises with hidden solutions</small></span></a></li>
+            <li><a href="Day-4/convolution_lab.html#notes"><span class="tick" aria-hidden="true">✓</span><span><b>Revision and self-test</b><small>formulas, common mistakes, 5 questions</small></span></a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="lab" style="padding-top:0">
+    <div class="wrap">
+      <div class="head reveal">
+        <span class="kicker">Inside the Convolution Lab</span>
+        <h2>Maths first. Then motion. Then practice.</h2>
+        <p>Built so you can take any small matrix and a kernel and produce the feature map with a pencil.</p>
+      </div>
+
+      <div class="features">
+        <div class="card feature reveal">
+          <div class="feature__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></div>
+          <h3>Every step written out</h3>
+          <p>All 9 filter positions: the region, the 9 products, the sum, and where the result goes.</p>
+        </div>
+        <div class="card feature reveal">
+          <div class="feature__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg></div>
+          <h3>Animated filter</h3>
+          <p>Next, Previous, Play, Pause and Reset. Change the kernel, stride or padding and watch it scan.</p>
+        </div>
+        <div class="card feature reveal">
+          <div class="feature__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h6"/><path d="M17 14l3 3-3 3"/></svg></div>
+          <h3>Stride &amp; padding</h3>
+          <p>Visiting maps show exactly where the window lands, and what the floor in the formula throws away.</p>
+        </div>
+        <div class="card feature reveal">
+          <div class="feature__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></div>
+          <h3>Multiple filters</h3>
+          <p>K filters give K feature maps. Plus an RGB-style multi-channel example and parameter counting.</p>
+        </div>
+        <div class="card feature reveal">
+          <div class="feature__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2h9"/></svg></div>
+          <h3>Practice with checking</h3>
+          <p>8 exercises from beginner to challenge. Type your answers, check them, then reveal the full working.</p>
+        </div>
+        <div class="card feature reveal">
+          <div class="feature__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 016.5 17H20V3H6.5A2.5 2.5 0 004 5.5v14z"/><path d="M8 7h8M8 11h6"/></svg></div>
+          <h3>Trusted sources</h3>
+          <p>Stanford CS230 and conv_arithmetic diagrams, each checked against the output-size formula.</p>
+        </div>
+      </div>
+
+      <div class="formula reveal">Output = ⌊(N − F + 2P) / S⌋ + 1<span>the one formula to remember</span></div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="band reveal">
+      <h2>Ready to slide a filter yourself?</h2>
+      <p>Open the lab, press Play, and watch a 5×5 image become a feature map, one multiplication at a time.</p>
+      <a class="btn" href="Day-4/convolution_lab.html">Start the Convolution Lab →</a>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Computer Vision Learning · by <a href="https://github.com/shamiulriyad" target="_blank" rel="noopener">shamiulriyad</a></span>
+    <span><a href="https://github.com/shamiulriyad/Computer-Vision-Learning" target="_blank" rel="noopener">Source on GitHub</a> · MIT licence</span>
+  </div>
+</footer>
+
+<script>
+/* Hero animation: the real Day-4 example. The output values are computed
+   here by the same slide-multiply-sum rule the lab teaches. */
+(function () {
+  var I = [[1,2,0,1,3],[0,1,3,2,1],[2,0,1,4,0],[1,3,2,0,1],[0,1,1,2,2]];
+  var K = [[1,0,-1],[1,0,-1],[1,0,-1]];
+  var fmt = function (v) { return v < 0 ? '−' + (-v) : String(v); };
+  var steps = [];
+  for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) {
+    var terms = [], s = 0;
+    for (var m = 0; m < 3; m++) for (var n = 0; n < 3; n++) {
+      var p = I[i + m][j + n] * K[m][n];        // element-wise product
+      terms.push(p < 0 ? '(' + fmt(p) + ')' : fmt(p)); s += p;   // running sum
+    }
+    steps.push({ i: i, j: j, terms: terms, sum: s });
+  }
+
+  function cell(grid, v, scale) {
+    var d = document.createElement('div');
+    d.className = 'mcell';
+    d.textContent = fmt(v);
+    if (v !== 0) { d.classList.add(v > 0 ? 'pos' : 'neg'); d.style.setProperty('--a', (0.15 + 0.45 * Math.abs(v) / scale).toFixed(2)); }
+    grid.appendChild(d);
+    return d;
+  }
+  var inG = document.getElementById('in'), kG = document.getElementById('k'), oG = document.getElementById('out');
+  I.forEach(function (r) { r.forEach(function (v) { cell(inG, v, 4); }); });
+  K.forEach(function (r) { r.forEach(function (v) { cell(kG, v, 1); }); });
+  var outCells = steps.map(function (st) { var c = cell(oG, st.sum, 4); c.classList.add('blank'); return c; });
+
+  var win = document.getElementById('win'), sum = document.getElementById('sum');
+  var k = 0;
+  function show() {
+    var st = steps[k];
+    win.style.setProperty('--x', st.j);
+    win.style.setProperty('--y', st.i);
+    outCells.forEach(function (c, idx) {
+      c.classList.toggle('blank', idx > k);
+      c.classList.toggle('now', idx === k);
+    });
+    sum.innerHTML = 'O[' + st.i + '][' + st.j + '] = ' + st.terms.join(' + ') + ' = <b>' + fmt(st.sum) + '</b>';
+  }
+  show();
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduce) setInterval(function () { k = (k + 1) % steps.length; show(); }, 1500);
+
+  // Fade sections in as they scroll into view
+  var els = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window && !reduce) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    els.forEach(function (el) { io.observe(el); });
+  } else {
+    els.forEach(function (el) { el.classList.add('in'); });
+  }
+})();
+</script>
+</body>
+</html>

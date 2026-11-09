@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Convolution Math Lab</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%233157d5%27/%3E%3Cpath d=%27M8 8h16v16H8z%27 fill=%27none%27 stroke=%27%23fff%27 stroke-width=%272%27/%3E%3Cpath d=%27M8 16h16M16 8v16%27 stroke=%27%23fff%27 stroke-width=%271.5%27/%3E%3Crect x=%278%27 y=%278%27 width=%278%27 height=%278%27 fill=%27%23e59400%27/%3E%3C/svg%3E">
+  <meta name="description" content="Day-4: how a CNN convolution filter works, calculated step by step, animated, and practised by hand.">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero__inner">
+    <p class="muted">Computer Vision Learning · Day 4</p>
+    <h1>The Convolution Operation in a CNN</h1>
+    <p>One filter, one image, every multiplication written out. By the end you should be able to take any small matrix and a kernel, and produce the feature map with a pencil.</p>
+    <div class="path" aria-label="Learning path">
+      <span>① Understand the maths</span><span>② Watch it move</span><span>③ Practise on your own</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <div class="toc__inner">
+    <a href="#setup">1. The problem</a>
+    <a href="#worked">2. Full calculation</a>
+    <a href="#animate">3. Filter movement</a>
+    <a href="#concepts">4. Concepts A–G</a>
+    <a href="#visuals">5. Diagrams &amp; sources</a>
+    <a href="#practice">6. Practice</a>
+    <a href="#notes">7. Learning notes</a>
+  </div>
+</nav>
+
+<main>
+
+<!-- =============================================================== 1 -->
+<section class="card" id="setup">
+  <h2>1. The problem we will solve</h2>
+  <p class="lead">A 5×5 grayscale "image" and a 3×3 filter. Our goal: the feature map.</p>
+
+  <div class="eq">
+    <div id="setup-input"></div>
+    <div class="op" aria-hidden="true">⊛</div>
+    <div id="setup-kernel"></div>
+  </div>
+  <p class="muted">Blue cells are positive, red cells are negative, and darker means larger in size. The small grey numbers are row and column indices. They start at 0, like NumPy.</p>
+
+  <h3>Before calculating anything: how big will the output be?</h3>
+  <p>The 3×3 window must stay completely inside the 5×5 image. Its top-left corner can sit in columns 0, 1 or 2 (column 3 would push the right edge off the image), and the same for rows. That is 3 × 3 = 9 positions, so the feature map is 3×3. The formula gives the same answer:</p>
+  <div id="setup-size"></div>
+
+  <h3>The one equation behind everything</h3>
+  <div class="math math--big">O[i][j] = Σ<sub>m=0..F−1</sub> Σ<sub>n=0..F−1</sub> I[i·S + m][j·S + n] × K[m][n]</div>
+  <div class="table-wrap">
+  <table class="vars">
+    <tr><th>Symbol</th><th>Meaning</th><th>In our example</th></tr>
+    <tr><td><code>I</code></td><td>input image (after padding, if any)</td><td>the 5×5 matrix above</td></tr>
+    <tr><td><code>K</code></td><td>kernel, also called the filter: the weights</td><td>the 3×3 matrix above</td></tr>
+    <tr><td><code>O[i][j]</code></td><td>output value at row <i>i</i>, column <i>j</i> of the feature map</td><td>9 values, i, j ∈ {0, 1, 2}</td></tr>
+    <tr><td><code>m, n</code></td><td>position inside the kernel (row, column)</td><td>0, 1, 2</td></tr>
+    <tr><td><code>S</code></td><td>stride: how many cells the window jumps each move</td><td>1</td></tr>
+    <tr><td><code>i·S, j·S</code></td><td>top-left corner of the window in the input</td><td>for O[1][2]: corner (1, 2)</td></tr>
+  </table>
+  </div>
+  <p>In words: <b>put the kernel on the image, multiply each pair of overlapping numbers, add the products, write down the result, slide, and repeat.</b></p>
+
+  <div class="callout">
+    <b>Read the kernel before you compute.</b> Its left column is all +1, its middle column all 0, its right column all −1. So every output equals
+    <i>(sum of the window's left column) − (sum of the window's right column)</i>.
+    That makes it a <b>vertical edge detector</b>: the answer is large when brightness changes from left to right. Section 2 uses this as an independent check.
+  </div>
+</section>
+
+<!-- =============================================================== 2 -->
+<section class="card" id="worked">
+  <h2>2. The complete calculation, position by position</h2>
+  <p class="lead">Nine filter positions, nine sums. Nothing skipped.</p>
+
+  <p>First, the big picture of a single step. The highlighted 3×3 region of the input is multiplied by the kernel and summed into exactly one cell of the feature map:</p>
+  <label class="config" style="display:block">
+    <span class="muted">Show position: </span>
+    <select id="diagram-pos" class="select"></select>
+  </label>
+  <div id="worked-diagram"></div>
+
+  <p>For every position we do the same six things:</p>
+  <ol>
+    <li><b>Extract</b> the 3×3 region of the input under the window.</li>
+    <li><b>Pair</b> each region element with the kernel element in the same position.</li>
+    <li><b>Multiply</b> each pair (element-wise, <code>⊙</code>) to get a 3×3 products matrix.</li>
+    <li><b>Add</b> all nine products.</li>
+    <li><b>Store</b> that single number in the output cell for this position.</li>
+    <li><b>Slide</b> the window by the stride and repeat until no valid position is left.</li>
+  </ol>
+  <p class="muted">In the products matrix, the small grey text is the multiplication (region value × kernel value) and the large number is its result.</p>
+
+  <div class="steps" id="worked-steps"></div>
+
+  <h3>Result: the feature map</h3>
+  <div class="two-col">
+    <div id="worked-final"></div>
+    <div>
+      <p><b>What do the numbers mean?</b></p>
+      <ul>
+        <li><b>O[1][2] = 4</b> (largest): the window's left column (3, 1, 2) is brighter than its right column (1, 0, 1). That is a bright-to-dark edge going left to right.</li>
+        <li><b>O[0][1] = −4</b> (most negative): the right column (1, 2, 4) is brighter than the left (2, 1, 0). That is a dark-to-bright edge.</li>
+        <li><b>O[0][2] = 0</b>: left and right columns have the same sum (4 and 4), so this filter finds no vertical edge there.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Independent check with the column shortcut</h3>
+  <p>Because the kernel is (+1, 0, −1) in every row, each output must equal the left-column sum minus the right-column sum. Same answers, computed a different way:</p>
+  <div class="table-wrap" id="worked-shortcut"></div>
+</section>
+
+<!-- =============================================================== 3 -->
+<section class="card" id="animate">
+  <h2>3. Watch the filter scan the image</h2>
+  <p class="lead">Step through it yourself. The amber box is the window; the amber output cell is the value being written.</p>
+
+  <div class="config" aria-label="Animator settings">
+    <label>Input image <select id="cfg-input" class="select"></select></label>
+    <label>Kernel <select id="cfg-kernel" class="select"></select></label>
+    <label>Stride S
+      <select id="cfg-stride" class="select"><option value="1">1</option><option value="2">2</option></select>
+    </label>
+    <label>Padding P
+      <select id="cfg-padding" class="select"><option value="0">0</option><option value="1">1</option></select>
+    </label>
+  </div>
+  <div id="kernel-editor-wrap" hidden>
+    <p class="muted" style="margin:0 0 .3rem">Type your own kernel weights (negative numbers allowed):</p>
+    <div class="kernel-editor" id="kernel-editor"></div>
+  </div>
+
+  <div id="stepper" tabindex="-1"></div>
+  <p class="muted">Tip: when the animator has focus, the ← and → keys step backward and forward. Change stride or padding and watch the window jumps and the output size change.</p>
+</section>
+
+<!-- =============================================================== 4 -->
+<section class="card" id="concepts">
+  <h2>4. The concepts, each with numbers</h2>
+  <p class="lead">Every idea below uses the same 5×5 input and kernel unless stated, so you can compare results directly.</p>
+
+  <!-- A -->
+  <div class="concept" id="concept-a">
+    <h3><span class="concept__tag">A</span>Convolution vs cross-correlation</h3>
+    <p>What we computed in section 2 is, strictly speaking, <b>cross-correlation</b>: the kernel is laid on the image as it is.</p>
+    <div class="math">Cross-correlation:  O[i][j] = Σ<sub>m</sub> Σ<sub>n</sub> I[i + m][j + n] · K[m][n]</div>
+    <p>The mathematical (signal-processing) <b>convolution</b> first <b>rotates the kernel by 180°</b>, flipping it top-to-bottom and left-to-right, and then does the same multiply-and-add:</p>
+    <div class="math">Convolution:  O[i][j] = Σ<sub>m</sub> Σ<sub>n</sub> I[i + m][j + n] · K[F−1−m][F−1−n]   (= cross-correlation with the flipped kernel)</div>
+    <div class="eq" id="concept-a-kernels"></div>
+    <div class="two-col" id="concept-a-outputs"></div>
+    <p>Position 1 with the flipped kernel, to see where the sign change comes from:</p>
+    <div id="concept-a-step"></div>
+    <div class="callout callout--warn">
+      <b>Important:</b> standard CNN implementations compute <b>cross-correlation, without flipping the kernel</b>, but everyone still calls it "convolution".
+      PyTorch's <code>nn.Conv2d</code> documentation calls its operation cross-correlation, and OpenCV's <code>cv2.filter2D</code> documentation says it "does actually compute correlation, not the convolution".
+      It does not matter for learning: the kernel weights are learned. If the flipped version is the useful one, gradient descent simply learns the flipped numbers.
+      It <i>does</i> matter when you compare with a library that flips, such as <code>scipy.signal.convolve2d</code>; use <code>scipy.signal.correlate2d</code> instead.
+      For symmetric kernels (box blur, Laplacian, sharpen) both give identical results.
+    </div>
+  </div>
+
+  <!-- B -->
+  <div class="concept" id="concept-b">
+    <h3><span class="concept__tag">B</span>Element-wise multiplication (⊙)</h3>
+    <p>Multiply numbers that sit in the <b>same position</b>: region[m][n] × K[m][n]. Nine independent multiplications, giving a matrix the same size as the kernel. This is the Hadamard product.</p>
+    <div id="concept-b-good"></div>
+    <p><b>It is not matrix multiplication.</b> Matrix multiplication (row × column) of the same two matrices gives something completely different:</p>
+    <div id="concept-b-bad"></div>
+    <p class="muted">For example, the top-left of the matrix product is row 0 of the region · column 0 of K = 1·1 + 2·1 + 0·1 = 3. In the element-wise product it is just 1·1 = 1.</p>
+  </div>
+
+  <!-- C -->
+  <div class="concept" id="concept-c">
+    <h3><span class="concept__tag">C</span>Summation: from nine products to one number</h3>
+    <p>Adding all products collapses the 3×3 products matrix into a single value. Order does not matter. Two equivalent ways for position 1:</p>
+    <div id="concept-c-sum"></div>
+    <p>Another way to see it is as a <b>dot product</b>. Flatten the region and the kernel into vectors of 9 numbers, row by row, and the multiply-and-add is exactly their dot product:</p>
+    <div id="concept-c-dot"></div>
+    <p>In a real CNN layer each filter also has a <b>bias</b> <i>b</i>, added once after the sum: <code>z = Σ(region ⊙ K) + b</code>. With <i>b</i> = 1, position 1 would give −1 + 1 = 0. An activation such as ReLU is then applied to <i>z</i> (Day-3), but that is a separate step after the convolution.</p>
+  </div>
+
+  <!-- D -->
+  <div class="concept" id="concept-d">
+    <h3><span class="concept__tag">D</span>Stride: S = 1 vs S = 2</h3>
+    <p>The stride <i>S</i> is how many cells the window jumps each move, both to the right and down to the next row. The grids below number the window's top-left corner in visiting order. Each number is one output value.</p>
+    <div class="two-col" id="concept-d-maps"></div>
+    <div class="two-col" id="concept-d-outputs"></div>
+    <p>With S = 2 the window lands at corners (0,0), (0,2), (2,0), (2,2). These are the same windows as positions 1, 3, 7 and 9 of the S = 1 run, so the stride-2 map is just every second value of the stride-1 map: −1, 0, −1, 1. Stride is a cheap way to <b>downsample</b>.</p>
+    <details class="qa">
+      <summary>Show all 4 stride-2 calculations</summary>
+      <div class="steps" id="concept-d-steps"></div>
+    </details>
+    <h4>When the stride does not divide evenly</h4>
+    <p>6×6 input, 3×3 kernel, S = 2. Hatched cells are never covered by any window. The floor in the formula is what throws them away:</p>
+    <div class="two-col" id="concept-d-uneven"></div>
+    <button type="button" class="btn" data-load='{"input":"day4","kernel":"vertical","stride":2,"padding":0}'>Animate stride 2 in section 3</button>
+  </div>
+
+  <!-- E -->
+  <div class="concept" id="concept-e">
+    <h3><span class="concept__tag">E</span>Padding: P = 0 vs P = 1</h3>
+    <p>Without padding (P = 0, "valid"), a 3×3 filter shrinks a 5×5 image to 3×3, and edge pixels take part in fewer windows than centre pixels. <b>Zero padding</b> adds <i>P</i> rings of zeros around the image first, so the window can also be centred on the border pixels.</p>
+    <div class="two-col" id="concept-e-grids"></div>
+    <p>The padded zeros contribute nothing to the sum (0 × anything = 0), so only the real pixels under the window count. Here is the corner position O[0][0] with P = 1:</p>
+    <div id="concept-e-step"></div>
+    <p><b>"Same" padding:</b> for an odd filter size <i>F</i> and S = 1, choosing <code>P = (F − 1) / 2</code> keeps the output the same size as the input. So P = 1 for 3×3 and P = 2 for 5×5.</p>
+    <h4>Padding and stride together: P = 1, S = 2</h4>
+    <div class="two-col" id="concept-e-both"></div>
+    <button type="button" class="btn" data-load='{"input":"day4","kernel":"vertical","stride":1,"padding":1}'>Animate padding 1 in section 3</button>
+  </div>
+
+  <!-- F -->
+  <div class="concept" id="concept-f">
+    <h3><span class="concept__tag">F</span>Output feature map dimensions</h3>
+    <div class="math math--big">Output Size = ⌊(N − F + 2P) / S⌋ + 1</div>
+    <div class="table-wrap">
+    <table class="vars">
+      <tr><th>Variable</th><th>Meaning</th><th>Why it is in the formula</th></tr>
+      <tr><td><b>N</b></td><td>input size (height or width)</td><td>the space available</td></tr>
+      <tr><td><b>F</b></td><td>filter (kernel) size</td><td>the window needs F cells, so the corner can only move N − F cells</td></tr>
+      <tr><td><b>P</b></td><td>padding on each side</td><td>adds P cells on the left and P on the right, so 2P</td></tr>
+      <tr><td><b>S</b></td><td>stride</td><td>the corner moves S cells per jump, so we count jumps by dividing by S</td></tr>
+      <tr><td><b>⌊ ⌋</b></td><td>floor (round down)</td><td>a partial jump would push the window off the image, so it is not allowed</td></tr>
+      <tr><td><b>+ 1</b></td><td>the starting position</td><td>the window's first position at column 0 counts, before any jump</td></tr>
+    </table>
+    </div>
+    <p><b>Derivation in one line:</b> the padded input has N + 2P cells. The window's corner can go from 0 up to (N + 2P) − F. Counting positions in steps of S gives ⌊((N + 2P) − F) / S⌋ jumps, plus the starting position.</p>
+    <p>Use it separately for height and width. Example: a 5×7 input, F = 3, P = 0, S = 2 → height ⌊(5 − 3)/2⌋ + 1 = 2, width ⌊(7 − 3)/2⌋ + 1 = 3, so the output is <b>2×3</b>.</p>
+    <h4>Worked calculations</h4>
+    <div class="table-wrap" id="concept-f-table"></div>
+    <h4>Try it: formula calculator</h4>
+    <div class="panel" id="concept-f-calc"></div>
+  </div>
+
+  <!-- G -->
+  <div class="concept" id="concept-g">
+    <h3><span class="concept__tag">G</span>Multiple filters → multiple feature maps</h3>
+    <p>One filter detects one kind of pattern and produces <b>one</b> feature map. A convolution layer runs <b>K</b> different filters over the same input and stacks the K feature maps into an output volume of depth K.</p>
+    <div id="concept-g-maps"></div>
+    <p>Filter 1 responds to vertical edges and filter 2 to horizontal edges. Look at O[1][2]: 4 for vertical, 3 for horizontal. That region has both kinds of change.</p>
+    <div class="volume" id="concept-g-volume"></div>
+    <div class="math">Output volume = H<sub>out</sub> × W<sub>out</sub> × (number of filters)   →   3 × 3 × 2</div>
+    <div class="math">Parameters = (number of filters) × (F × F × C + 1)   →   2 × (3 × 3 × 1 + 1) = 20</div>
+    <p class="muted">C = number of input channels (1 for grayscale, 3 for RGB). The +1 is each filter's bias.</p>
+
+    <h4>Going further: a multi-channel input</h4>
+    <p>For an RGB image every filter is F × F × C. Each channel is multiplied by its own kernel slice, <b>all</b> the products of all channels are added, plus one bias, giving <b>one</b> number. A 2-channel example (2×2 kernel slices, bias = 1):</p>
+    <div id="concept-g-multi"></div>
+  </div>
+</section>
+
+<!-- =============================================================== 5 -->
+<section class="card" id="visuals">
+  <h2>5. Diagrams from trusted sources</h2>
+  <p class="lead">Each picture below shows one of the ideas above. Check every one with the formula. The images load from the original sites; if you are offline, the recreated version on this page is linked instead.</p>
+
+  <div class="resources">
+    <article class="res">
+      <h4>How the kernel produces one output value</h4>
+      <div class="res__img">
+        <img loading="lazy" alt="A 3 by 3 filter placed over the top-left of a 6 by 6 input; dashed lines connect the region to the filter and an arrow points to one highlighted cell of a 4 by 4 output"
+             src="https://stanford.edu/~shervine/teaching/cs-230/illustrations/convolution-layer-a.png"
+             onerror="this.closest('.res').classList.add('is-broken')">
+        <p class="res__fallback">Image unavailable offline. The same idea, with real numbers: <a href="#worked">section 2 diagram</a>.</p>
+      </div>
+      <p>A 3×3 filter over a 6×6 input gives a 4×4 output. Check: ⌊(6 − 3 + 0)/1⌋ + 1 = 4. The highlighted output cell is the sum of the region ⊙ filter.</p>
+      <p class="res__src">Source: Afshine &amp; Shervine Amidi, <a href="https://stanford.edu/~shervine/teaching/cs-230/cheatsheet-convolutional-neural-networks" target="_blank" rel="noopener">Stanford CS230 CNN Cheatsheet</a> (MIT licence).</p>
+    </article>
+
+    <article class="res">
+      <h4>Stride: how far the window jumps</h4>
+      <div class="res__img">
+        <img loading="lazy" alt="A one-dimensional row of 7 cells with a 3-cell filter shown at three positions, each shifted right by S"
+             src="https://stanford.edu/~shervine/teaching/cs-230/illustrations/stride.png"
+             onerror="this.closest('.res').classList.add('is-broken')">
+        <p class="res__fallback">Image unavailable offline. See the <a href="#concept-d">stride visiting maps</a>.</p>
+      </div>
+      <p>A 1-D view: a 3-cell filter on 7 cells with S = 2 visits positions 0, 2, 4. Check: ⌊(7 − 3)/2⌋ + 1 = 3 positions.</p>
+      <p class="res__src">Source: <a href="https://stanford.edu/~shervine/teaching/cs-230/cheatsheet-convolutional-neural-networks#filter" target="_blank" rel="noopener">Stanford CS230 CNN Cheatsheet, "Filter hyperparameters"</a>.</p>
+    </article>
+
+    <article class="res">
+      <h4>Padding modes: valid, same, full</h4>
+      <div class="res__img res__img--row">
+        <img loading="lazy" alt="Valid padding: no padding" src="https://stanford.edu/~shervine/teaching/cs-230/illustrations/padding-valid-a.png" onerror="this.closest('.res').classList.add('is-broken')">
+        <img loading="lazy" alt="Same padding: zeros added so output size equals input size" src="https://stanford.edu/~shervine/teaching/cs-230/illustrations/padding-same-a.png" onerror="this.closest('.res').classList.add('is-broken')">
+        <img loading="lazy" alt="Full padding: F minus 1 rings of zeros" src="https://stanford.edu/~shervine/teaching/cs-230/illustrations/padding-full-a.png" onerror="this.closest('.res').classList.add('is-broken')">
+        <p class="res__fallback">Images unavailable offline. See <a href="#concept-e">concept E</a>.</p>
+      </div>
+      <ul>
+        <li><b>Valid</b>: P = 0, the output shrinks.</li>
+        <li><b>Same</b>: P = (F − 1)/2, the output has the same size as the input.</li>
+        <li><b>Full</b>: P = F − 1, every pixel is seen by every kernel weight, and the output grows: N + F − 1.</li>
+      </ul>
+      <p class="res__src">Source: <a href="https://stanford.edu/~shervine/teaching/cs-230/cheatsheet-convolutional-neural-networks#filter" target="_blank" rel="noopener">Stanford CS230 CNN Cheatsheet, "Zero-padding"</a>.</p>
+    </article>
+
+    <article class="res">
+      <h4>K filters → K feature maps</h4>
+      <div class="res__img">
+        <img loading="lazy" alt="Filter 1, Filter 2 up to Filter K, each a block of size F by F by C"
+             src="https://stanford.edu/~shervine/teaching/cs-230/illustrations/dimensions-filter-en.png"
+             onerror="this.closest('.res').classList.add('is-broken')">
+        <p class="res__fallback">Image unavailable offline. See <a href="#concept-g">concept G</a>.</p>
+      </div>
+      <p>Each filter is F × F × C (its depth matches the input's channels). K filters give an output of depth K, and K × (F·F·C + 1) parameters.</p>
+      <p class="res__src">Source: <a href="https://stanford.edu/~shervine/teaching/cs-230/cheatsheet-convolutional-neural-networks#filter" target="_blank" rel="noopener">Stanford CS230 CNN Cheatsheet, "Dimensions of a filter"</a>.</p>
+    </article>
+
+    <article class="res">
+      <h4>Animated: no padding, stride 1</h4>
+      <div class="res__img">
+        <img loading="lazy" alt="Animation: a 3 by 3 kernel slides over a 4 by 4 blue input, producing a 2 by 2 cyan output"
+             src="https://raw.githubusercontent.com/vdumoulin/conv_arithmetic/master/gif/no_padding_no_strides.gif"
+             onerror="this.closest('.res').classList.add('is-broken')">
+        <p class="res__fallback">Animation unavailable offline. Use the <a href="#animate">animator in section 3</a>.</p>
+      </div>
+      <p>Blue (bottom) = input 4×4, cyan (top) = output. N = 4, F = 3, P = 0, S = 1 → ⌊(4 − 3)/1⌋ + 1 = <b>2</b>, so 2×2.</p>
+      <p class="res__src">Source: V. Dumoulin &amp; F. Visin, <a href="https://github.com/vdumoulin/conv_arithmetic" target="_blank" rel="noopener">conv_arithmetic</a> (MIT licence), from <a href="https://arxiv.org/abs/1603.07285" target="_blank" rel="noopener">"A guide to convolution arithmetic for deep learning"</a>.</p>
+    </article>
+
+    <article class="res">
+      <h4>Animated: stride 2</h4>
+      <div class="res__img">
+        <img loading="lazy" alt="Animation: a 3 by 3 kernel jumps two cells at a time over a 5 by 5 input, producing a 2 by 2 output"
+             src="https://raw.githubusercontent.com/vdumoulin/conv_arithmetic/master/gif/no_padding_strides.gif"
+             onerror="this.closest('.res').classList.add('is-broken')">
+        <p class="res__fallback">Animation unavailable offline. Set stride 2 in the <a href="#animate">animator</a>.</p>
+      </div>
+      <p>N = 5, F = 3, P = 0, S = 2 → ⌊(5 − 3)/2⌋ + 1 = <b>2</b>. This is exactly our <a href="#concept-d">stride-2 example</a>.</p>
+      <p class="res__src">Source: <a href="https://github.com/vdumoulin/conv_arithmetic" target="_blank" rel="noopener">vdumoulin/conv_arithmetic</a>.</p>
+    </article>
+
+    <article class="res">
+      <h4>Animated: "same" padding (P = 1)</h4>
+      <div class="res__img">
+        <img loading="lazy" alt="Animation: a 5 by 5 input with a dashed ring of zero padding; a 3 by 3 kernel produces a 5 by 5 output"
+             src="https://raw.githubusercontent.com/vdumoulin/conv_arithmetic/master/gif/same_padding_no_strides.gif"
+             onerror="this.closest('.res').classList.add('is-broken')">
+        <p class="res__fallback">Animation unavailable offline. Set padding 1 in the <a href="#animate">animator</a>.</p>
+      </div>
+      <p>Dashed cells are zero padding. N = 5, F = 3, P = 1, S = 1 → ⌊(5 − 3 + 2)/1⌋ + 1 = <b>5</b>. The size is kept.</p>
+      <p class="res__src">Source: <a href="https://github.com/vdumoulin/conv_arithmetic" target="_blank" rel="noopener">vdumoulin/conv_arithmetic</a>.</p>
+    </article>
+
+    <article class="res">
+      <h4>Animated: padding 1 and stride 2</h4>
+      <div class="res__img">
+        <img loading="lazy" alt="Animation: a 5 by 5 input padded with zeros; the 3 by 3 kernel jumps two cells at a time producing a 3 by 3 output"
+             src="https://raw.githubusercontent.com/vdumoulin/conv_arithmetic/master/gif/padding_strides.gif"
+             onerror="this.closest('.res').classList.add('is-broken')">
+        <p class="res__fallback">Animation unavailable offline. See <a href="#concept-e">concept E (P = 1, S = 2)</a>.</p>
+      </div>
+      <p>N = 5, F = 3, P = 1, S = 2 → ⌊(5 − 3 + 2)/2⌋ + 1 = <b>3</b>. Compare with our P = 1, S = 2 result in concept E.</p>
+      <p class="res__src">Source: <a href="https://github.com/vdumoulin/conv_arithmetic" target="_blank" rel="noopener">vdumoulin/conv_arithmetic</a>.</p>
+    </article>
+  </div>
+
+  <h3>Further reading (all checked)</h3>
+  <ul class="links">
+    <li><a href="https://stanford.edu/~shervine/teaching/cs-230/cheatsheet-convolutional-neural-networks" target="_blank" rel="noopener">Stanford CS230: Convolutional Neural Networks cheatsheet</a>: one page of layer types, filter hyperparameters and dimension formulas.</li>
+    <li><a href="https://cs231n.github.io/convolutional-networks/" target="_blank" rel="noopener">Stanford CS231n notes: Convolutional Neural Networks</a>: see "Convolution Demo" for a live multi-channel example with stride 2 and padding 1.</li>
+    <li><a href="https://d2l.ai/chapter_convolutional-neural-networks/conv-layer.html" target="_blank" rel="noopener">Dive into Deep Learning §7.2: Convolutions for Images</a> and <a href="https://d2l.ai/chapter_convolutional-neural-networks/padding-and-strides.html" target="_blank" rel="noopener">§7.3: Padding and Stride</a>: the cross-correlation definition with code.</li>
+    <li><a href="https://arxiv.org/abs/1603.07285" target="_blank" rel="noopener">Dumoulin &amp; Visin, "A guide to convolution arithmetic for deep learning"</a>: every output-size case, derived carefully.</li>
+    <li><a href="https://setosa.io/ev/image-kernels/" target="_blank" rel="noopener">Setosa: Image Kernels explained visually</a>: apply kernels to a real photo and hover to see the 3×3 multiply-and-add.</li>
+    <li><a href="https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html" target="_blank" rel="noopener">PyTorch <code>nn.Conv2d</code> documentation</a>: the output-shape formula, and the note that the operation is cross-correlation.</li>
+  </ul>
+</section>
+
+<!-- =============================================================== 6 -->
+<section class="card" id="practice">
+  <h2>6. Practice: calculate by hand</h2>
+  <p class="lead">Take paper and a pencil. For each exercise: (A) compute the output size with the formula, (B) work out every value, (C) check. Reveal the solution only after you have tried.</p>
+  <div class="callout">
+    <b>Method that avoids mistakes:</b> write the region under the kernel, write the 9 products in a 3×3 grid (signs included), add them row by row, then add the row sums.
+  </div>
+  <div id="exercises"></div>
+
+  <h3>Output-size drills</h3>
+  <p>Square inputs and filters. Give the height (= width) of the feature map.</p>
+  <div id="size-quiz"></div>
+
+  <h3>Multiple filters</h3>
+  <div id="filter-quiz"></div>
+</section>
+
+<!-- =============================================================== 7 -->
+<section class="card" id="notes">
+  <h2>7. Learning notes</h2>
+
+  <div class="notes-grid">
+    <div class="panel">
+      <h4>What I learned</h4>
+      <ul>
+        <li>A convolution layer slides a small kernel over the input. At each position it multiplies element-wise, sums, and writes <b>one</b> number.</li>
+        <li>The collection of those numbers is the <b>feature map</b>. Large values mean "the pattern this kernel describes is here".</li>
+        <li>The kernel (+1, 0, −1) per row computes left-column minus right-column, so it is a vertical edge detector.</li>
+        <li><b>Stride</b> controls the jump size and therefore the output resolution. <b>Padding</b> controls what happens at the borders and can keep the size unchanged.</li>
+        <li>CNN libraries compute cross-correlation (no kernel flip), and call it convolution.</li>
+        <li>K filters give K feature maps, stacked into a volume of depth K. With C input channels, each filter is F×F×C and all channel products are added together.</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h4>Important formulas</h4>
+      <div class="math">O[i][j] = Σ<sub>m</sub>Σ<sub>n</sub> I[i·S+m][j·S+n]·K[m][n] + b</div>
+      <div class="math">Out = ⌊(N − F + 2P) / S⌋ + 1</div>
+      <div class="math">Same padding: P = (F − 1) / 2   (S = 1, F odd)</div>
+      <div class="math">Padded size = N + 2P</div>
+      <div class="math">Params = K × (F·F·C + 1)</div>
+      <div class="math">Output volume = Out<sub>H</sub> × Out<sub>W</sub> × K</div>
+    </div>
+
+    <div class="panel">
+      <h4>Common mistakes</h4>
+      <ul>
+        <li><b>Doing matrix multiplication</b> (row × column) instead of element-wise multiplication.</li>
+        <li><b>Losing a minus sign</b>: 3 × (−1) = −3. Write every product with its sign before adding.</li>
+        <li><b>Flipping the kernel</b> when the question means CNN "convolution". CNNs do not flip.</li>
+        <li><b>Forgetting the +1</b> in the output-size formula, or forgetting the <b>2</b> in 2P.</li>
+        <li><b>Rounding up</b> instead of down when (N − F + 2P) is not divisible by S.</li>
+        <li><b>Moving by 1</b> when the stride is 2, in both directions: also when jumping to the next row.</li>
+        <li><b>Computing on the unpadded image</b> when P &gt; 0. Pad first, then slide.</li>
+        <li><b>Writing the result in the wrong output cell.</b> Output (i, j) comes from the window whose corner is (i·S, j·S).</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h4>Key terminology</h4>
+      <dl class="terms">
+        <dt>Kernel / filter</dt><dd>Small matrix of weights that slides over the input (learned in a CNN).</dd>
+        <dt>Receptive field</dt><dd>The input region that one output value depends on (3×3 here).</dd>
+        <dt>Element-wise product (⊙)</dt><dd>Multiply entries in matching positions (Hadamard product).</dd>
+        <dt>Feature map</dt><dd>The output matrix of one filter: its response at every position.</dd>
+        <dt>Stride (S)</dt><dd>Cells the window moves per step.</dd>
+        <dt>Padding (P)</dt><dd>Rings of zeros added around the input.</dd>
+        <dt>Valid / Same / Full</dt><dd>P = 0 / P = (F−1)/2 / P = F−1.</dd>
+        <dt>Cross-correlation</dt><dd>Slide-multiply-sum without flipping: what CNNs do.</dd>
+        <dt>Convolution (math)</dt><dd>Same, but with the kernel rotated 180°.</dd>
+        <dt>Bias</dt><dd>One number per filter, added after the sum.</dd>
+        <dt>Channels (C)</dt><dd>Depth of the input (1 = gray, 3 = RGB). The filter depth equals C.</dd>
+        <dt>Depth (K)</dt><dd>Number of filters = number of output feature maps.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <h3>Revision sheet</h3>
+  <div class="revision">CONVOLUTION IN 6 STEPS                       EXAMPLE (5×5 input, 3×3 kernel)
+ 1. Compute output size first                 ⌊(5 − 3 + 0)/1⌋ + 1 = 3  → 3×3
+ 2. Pad the input if P &gt; 0                    P = 1 → 7×7, output 5×5
+ 3. Window corner at (i·S, j·S)               O[1][2] ← corner (1, 2)
+ 4. Multiply element-wise (⊙)                 9 products, keep the signs
+ 5. Sum all products (+ bias)                 1+0+0+0+0−3+2+0−1 = −1
+ 6. Store in O[i][j], slide S right;          end of row → S down, back to col 0
+    repeat until no valid position is left
+
+KERNEL CHEAT SHEET            RESULT
+ [1 0 −1] ×3 rows             left col − right col → vertical edges
+ [1 1 1; 0 0 0; −1 −1 −1]     top row − bottom row → horizontal edges
+ [0 −1 0; −1 5 −1; 0 −1 0]    5·centre − 4 neighbours → sharpen
+ [0 0 0; 0 1 0; 0 0 0]        copies the centre → identity
+
+DAY-4 ANSWER:  [[−1, −4, 0], [−3, −2, 4], [−1, −2, 1]]</div>
+
+  <h3>Five self-assessment questions</h3>
+  <details class="qa">
+    <summary>1. A 7×7 input, 3×3 kernel, P = 0, S = 2. What is the output size, and where are the window corners?</summary>
+    <p>⌊(7 − 3 + 0)/2⌋ + 1 = ⌊2⌋ + 1 = <b>3</b>, so 3×3. The corners are at rows {0, 2, 4} × columns {0, 2, 4}, 9 positions in total.</p>
+  </details>
+  <details class="qa">
+    <summary>2. Region [[2, 0, 1], [1, 3, 0], [4, 1, 2]] and kernel [[1, 0, −1], [1, 0, −1], [1, 0, −1]]. What is the output value?</summary>
+    <p>Products: [[2, 0, −1], [1, 0, 0], [4, 0, −2]]. Sum = 2 + 0 − 1 + 1 + 0 + 0 + 4 + 0 − 2 = <b>4</b>. Shortcut check: left column 2 + 1 + 4 = 7, right column 1 + 0 + 2 = 3, and 7 − 3 = 4.</p>
+  </details>
+  <details class="qa">
+    <summary>3. Why do PyTorch and TensorFlow not flip the kernel, and when would the flip matter?</summary>
+    <p>The weights are learned, so the network can learn the flipped kernel directly. Flipping adds work and changes nothing about what can be learned. It matters when you copy a hand-designed kernel between tools that disagree, for example <code>scipy.signal.convolve2d</code> (flips) vs <code>cv2.filter2D</code> (does not). For non-symmetric kernels the results then differ; for the Day-4 kernel, every sign flips.</p>
+  </details>
+  <details class="qa">
+    <summary>4. You need a 32×32 input to stay 32×32 after a 5×5 convolution with S = 1. What padding do you need?</summary>
+    <p>"Same" padding: P = (F − 1)/2 = (5 − 1)/2 = <b>2</b>. Check: ⌊(32 − 5 + 4)/1⌋ + 1 = 31 + 1 = 32.</p>
+  </details>
+  <details class="qa">
+    <summary>5. An RGB 64×64 image goes through a layer with 16 filters of 3×3, P = 1, S = 1. Give the output volume and the number of parameters.</summary>
+    <p>Spatial size: ⌊(64 − 3 + 2)/1⌋ + 1 = 64. The output volume is <b>64 × 64 × 16</b>, one feature map per filter. Parameters = 16 × (3·3·3 + 1) = 16 × 28 = <b>448</b>.</p>
+  </details>
+</section>
+
+</main>
+
+<footer>
+  Day-4 of <a href="../index.html">Computer-Vision-Learning</a> · <a href="https://github.com/shamiulriyad/Computer-Vision-Learning/tree/main/Day-4">source code</a> · every value on this page is computed by <code>assets/conv-math.js</code> and checked by <code>verify_convolution.py</code>.
+</footer>
+
+<script src="assets/conv-math.js"></script>
+<script src="assets/lab-data.js"></script>
+<script src="assets/components.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

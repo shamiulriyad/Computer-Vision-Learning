@@ -1,0 +1,74 @@
+Day-4: The Convolution Operation in a CNN
+=========================================
+Quick revision notes. Interactive lab: convolution_lab.html   Notes: README.md
+
+
+1. What one convolution step does
+---------------------------------
+1. Put the kernel (filter) on the input -> take the region under it
+2. Multiply element-wise (same position x same position)  -> NOT matrix multiplication
+3. Add all the products (+ bias)
+4. Write that ONE number into the output cell O[i][j]
+5. Slide by the stride S (end of row -> S rows down, back to column 0)
+6. Repeat until no valid position is left -> feature map
+
+
+2. Formulas
+-----------
+O[i][j]       = sum_m sum_n  I[i*S + m][j*S + n] * K[m][n]  + b
+Output size   = floor((N - F + 2P) / S) + 1        (height and width separately)
+Padded size   = N + 2P
+Same padding  = P = (F - 1) / 2                    (S = 1, F odd)
+Parameters    = K * (F*F*C + 1)                    (K filters, C input channels)
+Output volume = H_out x W_out x K
+
+
+3. Day-4 example
+----------------
+Input 5x5:            Kernel 3x3 (vertical edge):
+1 2 0 1 3              1 0 -1
+0 1 3 2 1              1 0 -1
+2 0 1 4 0              1 0 -1
+1 3 2 0 1
+0 1 1 2 2
+
+Size: floor((5 - 3 + 0)/1) + 1 = 3  -> 3x3
+O[0][0] = 1+0+0 + 0+0-3 + 2+0-1 = -1
+
+Feature map:   -1 -4  0
+               -3 -2  4
+               -1 -2  1
+
+Shortcut for this kernel: left-column sum - right-column sum.
+
+
+4. Stride and padding on the same example
+-----------------------------------------
+S = 2, P = 0 -> floor(2/2)+1 = 2 -> [[-1, 0], [-1, 1]]
+S = 1, P = 1 -> floor(4/1)+1 = 5 -> 5x5 (same size as input)
+S = 2, P = 1 -> floor(4/2)+1 = 3 -> [[-3, 0, 3], [-4, -2, 6], [-4, 2, 2]]
+6x6, F = 3, S = 2 -> floor(3/2)+1 = 2 -> the last row/column is never used
+
+
+5. Convolution vs cross-correlation
+-----------------------------------
+- CNNs (PyTorch, TensorFlow, cv2.filter2D) compute CROSS-CORRELATION: no kernel flip.
+- Math convolution rotates the kernel 180 degrees first (scipy.signal.convolve2d).
+- Doesn't matter for CNNs: the weights are learned, so the network learns the flipped kernel if it needs it.
+- Day-4 kernel flipped = -K, so true convolution gives every output with the opposite sign.
+
+
+6. Multiple filters / channels
+------------------------------
+- 1 filter -> 1 feature map.  K filters -> K feature maps stacked (depth K).
+- RGB input: each filter is F x F x 3; add the products of ALL channels + 1 bias -> one number.
+
+
+7. Common mistakes
+------------------
+- matrix multiplication instead of element-wise
+- losing minus signs
+- forgetting +1 or the 2 in 2P
+- rounding up instead of down
+- moving 1 cell when S = 2
+- not padding before sliding
