@@ -1,0 +1,1090 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Padding and Stride Lab</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%233157d5%27/%3E%3Crect x=%279%27 y=%279%27 width=%2714%27 height=%2714%27 fill=%27none%27 stroke=%27%23fff%27 stroke-width=%272%27/%3E%3Crect x=%274%27 y=%274%27 width=%2724%27 height=%2724%27 rx=%273%27 fill=%27none%27 stroke=%27%23fff%27 stroke-width=%271.5%27 stroke-dasharray=%273 2%27/%3E%3Crect x=%279%27 y=%279%27 width=%277%27 height=%277%27 fill=%27%23e59400%27/%3E%3C/svg%3E">
+  <meta name="description" content="Day-5: padding and strides in a CNN, animated step by step, with an output-size calculator, a Keras network planner and practice questions.">
+<style>
+/* Day-5 Padding & Stride Lab. Same colour language as the Day-4 Convolution Lab:
+     blue tint  = positive value      red tint = negative value
+     amber box  = current filter window / current output cell
+     grey dashed cells = zero padding  hatched cells = never covered by the filter */
+
+:root {
+  --bg: #f6f7fb; --surface: #ffffff; --surface-2: #f0f2f8; --text: #1c2233; --muted: #5d6680;
+  --border: #d9deea; --accent: #3157d5; --accent-ink: #ffffff;
+  --pos-rgb: 49 87 213; --neg-rgb: 214 52 52;
+  --window: #e59400; --window-soft: rgb(229 148 0 / 0.16);
+  --ok: #1a8a4a; --bad: #c62f2f; --pad-bg: #eceef3; --code-bg: #eef1f8;
+  --cell: 42px; --gap: 3px; --radius: 12px;
+  --mono: ui-monospace, "Cascadia Mono", "Consolas", "SFMono-Regular", Menlo, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11141c; --surface: #181c27; --surface-2: #1f2433; --text: #e6e9f2; --muted: #9aa3bb;
+    --border: #2d3446; --accent: #7f9cff; --accent-ink: #0d1020; --pos-rgb: 102 140 255; --neg-rgb: 255 104 104;
+    --window: #ffb534; --window-soft: rgb(255 181 52 / 0.16); --ok: #4cc77f; --bad: #ff7272; --pad-bg: #232838; --code-bg: #1f2433;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11141c; --surface: #181c27; --surface-2: #1f2433; --text: #e6e9f2; --muted: #9aa3bb;
+  --border: #2d3446; --accent: #7f9cff; --accent-ink: #0d1020; --pos-rgb: 102 140 255; --neg-rgb: 255 104 104;
+  --window: #ffb534; --window-soft: rgb(255 181 52 / 0.16); --ok: #4cc77f; --bad: #ff7272; --pad-bg: #232838; --code-bg: #1f2433;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 var(--sans); }
+a { color: var(--accent); }
+code, .mono { font-family: var(--mono); font-size: 0.92em; background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
+h1, h2, h3, h4 { line-height: 1.25; }
+h2 { margin-top: 0; font-size: 1.6rem; }
+h3 { font-size: 1.2rem; margin: 1.6rem 0 0.6rem; }
+.muted { color: var(--muted); }
+[hidden] { display: none !important; }
+
+/* ---------- layout ---------- */
+.hero { background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%); border-bottom: 1px solid var(--border); padding: 2.2rem 16px 1.6rem; }
+.hero__inner, main, .toc__inner { max-width: 1120px; margin: 0 auto; }
+.hero h1 { margin: 0 0 0.4rem; font-size: clamp(1.6rem, 4vw, 2.4rem); }
+.hero p { margin: 0.3rem 0; max-width: 780px; }
+.crumbs { font-size: 0.9rem; }
+.crumbs a { text-decoration: none; }
+.path { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+.path span, .path a { background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 0.25rem 0.8rem; font-size: 0.9rem; text-decoration: none; color: var(--text); }
+.path a:hover { border-color: var(--accent); }
+.toc { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--border); }
+.toc__inner { display: flex; gap: 0.25rem; overflow-x: auto; padding: 0.45rem 16px; scrollbar-width: thin; }
+.toc a { white-space: nowrap; text-decoration: none; color: var(--muted); padding: 0.3rem 0.7rem; border-radius: 8px; font-size: 0.9rem; }
+.toc a:hover, .toc a:focus-visible { background: var(--surface-2); color: var(--text); }
+main { padding: 1.5rem 16px 4rem; }
+section.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: clamp(1rem, 3vw, 2rem); margin: 0 0 1.5rem; scroll-margin-top: 60px; }
+.lead { font-size: 1.05rem; color: var(--muted); margin-top: -0.3rem; }
+.callout { border-left: 4px solid var(--accent); background: var(--surface-2); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+.callout--warn { border-left-color: var(--window); }
+.two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem; align-items: start; }
+.three-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; align-items: start; }
+.panel { border: 1px solid var(--border); border-radius: 10px; padding: 1rem; background: var(--surface); min-width: 0; }
+.panel h4 { margin: 0 0 0.4rem; }
+.panel p { margin: 0.35rem 0; font-size: 0.95rem; }
+
+/* ---------- formulas ---------- */
+.math { font-family: var(--mono); background: var(--code-bg); border-radius: 8px; padding: 0.8rem 1rem; overflow-x: auto; white-space: nowrap; margin: 0.8rem 0; }
+.math--big { font-size: 1.15rem; text-align: center; }
+.workings { font-family: var(--mono); background: var(--code-bg); border-radius: 8px; padding: 0.7rem 1rem; margin: 0.6rem 0; overflow-x: auto; line-height: 1.8; }
+.workings div { white-space: nowrap; }
+.hl { color: var(--window); font-weight: 700; }
+table.vars { border-collapse: collapse; width: 100%; margin: 0.6rem 0; font-size: 0.95rem; }
+table.vars th, table.vars td { border-bottom: 1px solid var(--border); padding: 0.45rem 0.6rem; text-align: left; vertical-align: top; }
+table.vars th { color: var(--muted); font-weight: 600; }
+table.vars td.r, table.vars th.r { text-align: right; font-variant-numeric: tabular-nums; }
+table.vars tr.total td { font-weight: 700; border-top: 2px solid var(--border); }
+table.vars tr.err td { color: var(--bad); }
+table.vars td.mono { background: none; padding: 0.45rem 0.6rem; border-radius: 0; }
+#anim-formula { white-space: normal; line-height: 1.8; }
+.table-wrap { overflow-x: auto; }
+
+/* ---------- matrix grid ---------- */
+.matrix { margin: 0; display: inline-flex; flex-direction: column; align-items: center; gap: 0.35rem; max-width: 100%; }
+.matrix__label { font-size: 0.82rem; color: var(--muted); font-weight: 600; text-align: center; }
+.matrix__wrap { max-width: 100%; overflow-x: auto; padding: 5px; }
+.matrix__grid { position: relative; display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); grid-auto-rows: var(--cell); gap: var(--gap); }
+.cell {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); border-radius: 5px; background-color: var(--surface);
+  font-family: var(--mono); font-size: calc(var(--cell) * 0.38); font-variant-numeric: tabular-nums;
+  transition: background-color 0.25s, box-shadow 0.25s;
+}
+.cell.pos { background-color: rgb(var(--pos-rgb) / var(--a, 0.2)); }
+.cell.neg { background-color: rgb(var(--neg-rgb) / var(--a, 0.2)); }
+.cell--pad { border-style: dashed; background-color: var(--pad-bg) !important; color: var(--muted); }
+.cell--blank { background-color: var(--surface-2); }
+.cell--blank::after { content: "?"; color: var(--muted); opacity: 0.55; }
+.cell.in-window { font-weight: 700; border-color: var(--window); }
+.cell.is-current { box-shadow: 0 0 0 3px var(--window); font-weight: 700; }
+.cell--unused { background-image: repeating-linear-gradient(45deg, transparent 0 5px, rgb(var(--neg-rgb) / 0.28) 5px 7px); }
+.cell--start { box-shadow: inset 0 0 0 2px var(--accent); }
+.cell .cov { position: absolute; top: 0; right: 2px; font-size: max(8px, calc(var(--cell) * 0.24)); line-height: 1.2; color: var(--accent); font-weight: 700; }
+.matrix__window {
+  position: absolute;
+  left: calc(var(--wc) * (var(--cell) + var(--gap)) - 4px);
+  top: calc(var(--wr) * (var(--cell) + var(--gap)) - 4px);
+  width: calc(var(--ww) * (var(--cell) + var(--gap)) - var(--gap) + 8px);
+  height: calc(var(--wh) * (var(--cell) + var(--gap)) - var(--gap) + 8px);
+  border: 3px solid var(--window); border-radius: 8px; pointer-events: none;
+  background: var(--window-soft);
+  transition: left 0.45s ease, top 0.45s ease, width 0.3s, height 0.3s;
+}
+.eq { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.8rem; margin: 0.6rem 0; }
+.op { font-size: 1.6rem; color: var(--muted); padding: 0 0.1rem; margin-top: 1.2rem; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.1rem; font-size: 0.85rem; color: var(--muted); margin: 0.4rem 0; }
+.legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+.swatch { display: inline-block; width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--border); }
+.swatch--pad { background: var(--pad-bg); border-style: dashed; }
+.swatch--win { border: 2px solid var(--window); background: var(--window-soft); }
+.swatch--unused { background-image: repeating-linear-gradient(45deg, transparent 0 4px, rgb(var(--neg-rgb) / 0.4) 4px 6px); }
+.swatch--start { box-shadow: inset 0 0 0 2px var(--accent); }
+
+/* ---------- animator ---------- */
+.stepper { outline: none; }
+.stepper:focus-visible { outline: 3px solid var(--accent); outline-offset: 6px; border-radius: 10px; }
+.config { display: flex; flex-wrap: wrap; gap: 0.6rem 1.1rem; margin-bottom: 0.6rem; align-items: end; }
+.config label { display: flex; flex-direction: column; font-size: 0.82rem; color: var(--muted); gap: 0.2rem; }
+.config label.check { flex-direction: row; align-items: center; gap: 0.4rem; font-size: 0.9rem; color: var(--text); padding-bottom: 0.4rem; }
+.presets { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.3rem 0 0.8rem; align-items: center; }
+.presets .muted { font-size: 0.85rem; margin-right: 0.2rem; }
+.stage { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.5rem 1.2rem; padding: 1rem 0.5rem; background: var(--surface-2); border-radius: 10px; margin: 0.8rem 0; min-height: 120px; }
+.stage .warnbox { color: var(--bad); font-weight: 600; text-align: center; padding: 1rem; }
+.narration { min-height: 3.2em; margin: 0.4rem 0; }
+.sumline { font-family: var(--mono); background: var(--code-bg); border-radius: 8px; padding: 0.55rem 0.9rem; overflow-x: auto; white-space: nowrap; margin: 0.4rem 0; min-height: 2.6em; }
+.pill { display: inline-block; background: var(--window-soft); border: 1px solid var(--window); border-radius: 999px; padding: 0.05rem 0.7rem; font-family: var(--mono); font-weight: 700; }
+.counter { font-family: var(--mono); color: var(--muted); margin-left: auto; }
+
+/* ---------- controls ---------- */
+.controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.5rem 0; }
+.btn { font: inherit; font-size: 0.92rem; padding: 0.45rem 0.9rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+.btn:hover:not(:disabled) { border-color: var(--accent); }
+.btn:focus-visible, .num:focus-visible, .select:focus-visible, input[type=range]:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn--primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.btn--sm { font-size: 0.84rem; padding: 0.3rem 0.7rem; }
+.select, .num { font: inherit; font-size: 0.92rem; padding: 0.38rem 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+.num { width: 5.4em; font-family: var(--mono); }
+.num.ok { border-color: var(--ok); box-shadow: 0 0 0 2px rgb(26 138 74 / 0.25); }
+.num.bad { border-color: var(--bad); box-shadow: 0 0 0 2px rgb(198 47 47 / 0.25); }
+
+/* ---------- section 1: shrinking ---------- */
+.shrink { display: grid; gap: 0.8rem; margin: 0.8rem 0; }
+.shrink__row { display: grid; grid-template-columns: 7.5rem 1fr; gap: 0.8rem; align-items: end; }
+.shrink__name { font-weight: 600; font-size: 0.92rem; padding-bottom: 1.4rem; }
+.shrink__name small { display: block; font-weight: 400; color: var(--muted); }
+.shrink__boxes { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; min-width: 0; }
+.sbox { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
+.sbox i { display: block; width: var(--s); height: var(--s); border-radius: 4px; background: rgb(var(--pos-rgb) / 0.25); border: 1.5px solid rgb(var(--pos-rgb) / 0.7); transition: width 0.3s, height 0.3s; }
+.sbox--gone i { width: 28px; height: 28px; background: none; border: 1.5px dashed var(--bad); }
+.sbox--gone { color: var(--bad); }
+.range { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; font-size: 0.92rem; }
+
+/* ---------- planner ---------- */
+.planner-layers { display: grid; gap: 0.5rem; margin: 0.6rem 0; }
+.planner-layer { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; padding: 0.5rem 0.7rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); }
+.planner-layer b { min-width: 6.5rem; }
+.planner-layer label { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.88rem; color: var(--muted); }
+.bars { display: grid; gap: 0.45rem; margin: 0.8rem 0; }
+.bar { display: grid; grid-template-columns: 11rem 1fr; gap: 0.6rem; align-items: center; font-size: 0.88rem; }
+.bar__track { background: var(--surface-2); border-radius: 6px; height: 1.6rem; position: relative; overflow: hidden; }
+.bar__fill { height: 100%; background: rgb(var(--pos-rgb) / 0.45); border-radius: 6px; transition: width 0.4s; }
+.bar--you .bar__fill { background: var(--window); }
+.bar__val { position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-size: 0.82rem; font-weight: 700; }
+
+/* ---------- practice ---------- */
+.drill { border: 1px solid var(--border); border-radius: 10px; padding: 0.9rem 1rem; margin: 0.8rem 0; }
+.drill__q { margin: 0 0 0.5rem; }
+.drill__q b { margin-right: 0.3rem; }
+.drill__row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.feedback { font-weight: 600; }
+.feedback.ok { color: var(--ok); }
+.feedback.bad { color: var(--bad); }
+.badge { font-size: 0.72rem; font-weight: 700; padding: 0.1rem 0.55rem; border-radius: 999px; color: #fff; background: #2f8f5b; margin-right: 0.4rem; vertical-align: 1px; }
+.badge--intermediate { background: #c27b00; }
+.badge--challenge { background: #7b3fc4; }
+details.qa { border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.9rem; margin: 0.5rem 0; }
+details.qa summary { cursor: pointer; font-weight: 600; }
+.drill details { margin-top: 0.5rem; }
+.drill summary { cursor: pointer; color: var(--accent); font-size: 0.92rem; }
+
+/* ---------- notes ---------- */
+.notes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
+.notes-grid ul, .notes-grid ol { padding-left: 1.2rem; margin: 0.4rem 0; }
+.notes-grid li { margin: 0.3rem 0; }
+dl.terms { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1rem; margin: 0; }
+dl.terms dt { font-weight: 700; }
+dl.terms dd { margin: 0; }
+.links li { margin: 0.35rem 0; }
+footer { text-align: center; color: var(--muted); font-size: 0.88rem; padding: 0 16px 2rem; }
+
+@media (max-width: 640px) {
+  .op { font-size: 1.3rem; margin-top: 1rem; }
+  .counter { margin-left: 0; width: 100%; }
+  .sumline { white-space: normal; }
+  .shrink__row { grid-template-columns: 1fr; gap: 0.3rem; }
+  .shrink__name { padding-bottom: 0; }
+  .bar { grid-template-columns: 1fr; gap: 0.2rem; }
+  dl.terms { grid-template-columns: 1fr; }
+  dl.terms dd { margin-bottom: 0.4rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .matrix__window, .cell, .sbox i, .bar__fill { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero__inner">
+    <p class="muted crumbs"><a href="../index.html">Computer Vision Learning</a> · Day 5</p>
+    <h1>Padding and Stride Lab</h1>
+    <p>Two settings decide the size of every feature map in a CNN. <b>Padding</b> adds a border so the image doesn't shrink and the edges aren't lost. <b>Stride</b> makes the filter jump, so the network gets faster and sees bigger patterns. Change them below and watch exactly what happens.</p>
+    <div class="path" aria-label="Related pages">
+      <a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-5/README.md">📗 Notes</a>
+      <a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-5/padding_and_strides_demo.ipynb">📓 Keras notebook</a>
+      <a href="../Day-4/convolution_lab.html">⬅ Day 4: Convolution Lab</a>
+    </div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <div class="toc__inner">
+    <a href="#why">1. Why padding</a>
+    <a href="#animate">2. Animator</a>
+    <a href="#stride">3. Stride side by side</a>
+    <a href="#formula">4. Output size formula</a>
+    <a href="#planner">5. Network planner</a>
+    <a href="#practice">6. Practice</a>
+    <a href="#notes">7. Learning notes</a>
+  </div>
+</nav>
+
+<main>
+
+<!-- =============================================================== 1 -->
+<section class="card" id="why">
+  <h2>1. Why padding?</h2>
+  <p class="lead">Without padding, a convolution has two problems. Both are easy to see.</p>
+
+  <h3>Problem 1: the image shrinks after every layer</h3>
+  <p>A filter of size <code>f</code> can only sit where it fits completely inside the image, so each layer loses <code>f − 1</code> pixels in height and width. Stack layers and see what is left of a 28×28 MNIST digit.</p>
+  <div class="range">
+    <label for="shrink-layers">Conv layers:</label>
+    <input type="range" id="shrink-layers" min="1" max="12" value="3">
+    <output id="shrink-layers-out" class="mono">3</output>
+    <label for="shrink-f" style="margin-left:0.8rem">Filter:</label>
+    <select id="shrink-f" class="select"><option value="3">3×3</option><option value="5">5×5</option></select>
+  </div>
+  <div class="shrink" id="shrink"></div>
+  <p id="shrink-note" class="muted"></p>
+
+  <h3>Problem 2: border pixels are used less</h3>
+  <p>Each number below counts <b>how many filter positions cover that pixel</b> (3×3 filter, stride 1, 6×6 image). More coverage means the pixel influences more of the output.</p>
+  <div class="two-col">
+    <div class="panel">
+      <h4>No padding (p = 0)</h4>
+      <div id="cov-valid"></div>
+      <p>Corner pixel: used <b>1×</b>. Centre pixel: used <b>9×</b>. Information at the edges is under-used.</p>
+    </div>
+    <div class="panel">
+      <h4>Zero padding (p = 1)</h4>
+      <div id="cov-same"></div>
+      <p>Every pixel takes part in more positions (corners 4×, the rest 6× or 9×), and the output stays 6×6.</p>
+    </div>
+  </div>
+  <div class="callout"><b>Padding fixes both:</b> add <code>p</code> rows and columns of zeros on every side. The padded image is <code>n + 2p</code> wide, so with stride 1 the output is <code>n + 2p − f + 1</code>. Choosing <code>p = (f − 1) / 2</code> makes that exactly <code>n</code>: <b>same</b> padding.</div>
+</section>
+
+<!-- =============================================================== 2 -->
+<section class="card" id="animate">
+  <h2>2. Watch padding and stride in action</h2>
+  <p class="lead">Pick the input size, filter, padding and stride. The window slides, multiplies, adds, and fills the output one cell at a time.</p>
+
+  <div class="stepper" id="stepper" tabindex="0" aria-label="Padding and stride animator. Use the arrow keys to step, space to play or pause.">
+    <div class="presets" id="presets"><span class="muted">Try:</span></div>
+    <div class="config">
+      <label>Input n <select class="select" id="cfg-n"></select></label>
+      <label>Filter f <select class="select" id="cfg-f"></select></label>
+      <label>Padding p <select class="select" id="cfg-p"></select></label>
+      <label>Stride s <select class="select" id="cfg-s"></select></label>
+      <label>Kernel
+        <select class="select" id="cfg-k">
+          <option value="edge">Vertical edge (+1 … −1)</option>
+          <option value="hedge">Horizontal edge</option>
+          <option value="sum">All ones (sum)</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" id="cfg-cov"> Show coverage counts</label>
+      <button class="btn btn--sm" id="cfg-shuffle" type="button">New numbers</button>
+    </div>
+
+    <div class="math" id="anim-formula" aria-live="polite"></div>
+
+    <div class="stage" id="stage"></div>
+    <div class="legend">
+      <span><i class="swatch swatch--pad"></i> zero padding</span>
+      <span><i class="swatch swatch--win"></i> filter window / current output</span>
+      <span><i class="swatch swatch--unused"></i> never covered (stride leftover)</span>
+      <span><i class="swatch" style="background:rgb(var(--pos-rgb)/.35)"></i> positive</span>
+      <span><i class="swatch" style="background:rgb(var(--neg-rgb)/.35)"></i> negative</span>
+    </div>
+
+    <p class="narration" id="narration" aria-live="polite"></p>
+    <div class="sumline" id="sumline"></div>
+
+    <div class="controls">
+      <button class="btn" id="btn-reset" type="button">⏮ Reset</button>
+      <button class="btn" id="btn-prev" type="button">◀ Previous</button>
+      <button class="btn btn--primary" id="btn-play" type="button">▶ Play</button>
+      <button class="btn" id="btn-next" type="button">Next ▶</button>
+      <label class="muted" style="font-size:.88rem">Speed
+        <select class="select" id="btn-speed"><option value="1600">Slow</option><option value="900" selected>Normal</option><option value="400">Fast</option></select>
+      </label>
+      <span class="counter" id="counter"></span>
+    </div>
+  </div>
+  <p class="muted" style="font-size:.9rem">Keyboard: click the animator, then ← / → to step and Space to play or pause.</p>
+</section>
+
+<!-- =============================================================== 3 -->
+<section class="card" id="stride">
+  <h2>3. Stride side by side</h2>
+  <p class="lead">Same 7×7 image, same 3×3 filter, no padding. Only the stride changes.</p>
+  <p>Each cell shows how many times the filter covers it. Blue outlines mark where the window's top-left corner lands. Hatched cells are never covered at all.</p>
+  <div class="three-col" id="stride-compare"></div>
+  <div class="callout">
+    <b>Why use a stride larger than 1?</b>
+    <ol style="margin:.4rem 0 0; padding-left:1.2rem">
+      <li><b>Faster computation:</b> fewer window positions, so fewer multiplications (see the counts above).</li>
+      <li><b>Less training time and memory:</b> smaller feature maps, and far fewer weights in the Dense layer after <code>Flatten</code> (section 5).</li>
+      <li><b>Higher-level features:</b> after downsampling, each pixel stands for a bigger area of the original image, so later layers learn larger patterns (shapes, object parts) instead of tiny edges.</li>
+    </ol>
+  </div>
+  <div class="callout callout--warn"><b>The trade-off:</b> with <code>s = 3</code> the last row and column are skipped completely. <code>(n − f) = 4</code> is not a multiple of 3, so the floor in the formula throws the leftover away. A big stride too early can lose useful detail.</div>
+</section>
+
+<!-- =============================================================== 4 -->
+<section class="card" id="formula">
+  <h2>4. The output size formula</h2>
+  <div class="math math--big">Output = ⌊(n + 2p − f) / s⌋ + 1</div>
+  <div class="table-wrap">
+  <table class="vars">
+    <tr><th>Symbol</th><th>Meaning</th><th>Why it is there</th></tr>
+    <tr><td><code>n</code></td><td>input size (height or width)</td><td>where we start</td></tr>
+    <tr><td><code>2p</code></td><td>padding added on <b>both</b> sides</td><td>the padded image is <code>n + 2p</code></td></tr>
+    <tr><td><code>− f</code></td><td>filter size</td><td><code>n + 2p − f</code> is how far the window's corner can travel</td></tr>
+    <tr><td><code>/ s</code></td><td>stride</td><td>that distance is covered in jumps of <code>s</code></td></tr>
+    <tr><td><code>⌊ ⌋</code></td><td>floor: round <b>down</b></td><td>a jump that would go past the edge is not allowed</td></tr>
+    <tr><td><code>+ 1</code></td><td>the starting position</td><td>the window is already at position 0 before any jump</td></tr>
+  </table>
+  </div>
+
+  <h3>Calculator</h3>
+  <div class="config">
+    <label>n <input class="num" id="calc-n" type="number" min="1" max="1024" value="28"></label>
+    <label>f <input class="num" id="calc-f" type="number" min="1" max="31" value="3"></label>
+    <label>p <input class="num" id="calc-p" type="number" min="0" max="20" value="1"></label>
+    <label>s <input class="num" id="calc-s" type="number" min="1" max="20" value="2"></label>
+  </div>
+  <div class="workings" id="calc-out" aria-live="polite"></div>
+
+  <div class="two-col">
+    <div class="panel">
+      <h4>Special case: stride 1</h4>
+      <p><code>⌊(n + 2p − f) / 1⌋ + 1 = n + 2p − f + 1</code></p>
+      <p>This is the padding formula from section 1.</p>
+    </div>
+    <div class="panel">
+      <h4>Same padding: how much?</h4>
+      <p>Set <code>n + 2p − f + 1 = n</code> and solve: <code>p = (f − 1) / 2</code>.</p>
+      <p>3×3 → <b>1</b>, 5×5 → <b>2</b>, 7×7 → <b>3</b>. Padding is "usually 1" only because 3×3 filters are the most common.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== 5 -->
+<section class="card" id="planner">
+  <h2>5. Network planner: the notebook experiment, live</h2>
+  <p class="lead">The Day-5 notebook builds this model on MNIST: three <code>Conv2D(32, 3×3)</code> layers → <code>Flatten</code> → <code>Dense(128)</code> → <code>Dense(10)</code>. Change padding and stride per layer and watch the shapes and parameter counts.</p>
+
+  <div class="presets" id="planner-presets"><span class="muted">Notebook models:</span></div>
+  <div class="config">
+    <label>Input size <input class="num" id="pl-n" type="number" min="4" max="256" value="28"></label>
+    <label>Channels <input class="num" id="pl-c" type="number" min="1" max="4" value="1"></label>
+    <label>Filters per layer <input class="num" id="pl-k" type="number" min="1" max="256" value="32"></label>
+    <label>Kernel <select class="select" id="pl-f"><option value="3">3×3</option><option value="5">5×5</option></select></label>
+  </div>
+  <div class="planner-layers" id="planner-layers"></div>
+
+  <div class="table-wrap"><table class="vars" id="planner-table"></table></div>
+  <h3>Total parameters compared</h3>
+  <div class="bars" id="planner-bars"></div>
+  <div class="callout" id="planner-note"></div>
+</section>
+
+<!-- =============================================================== 6 -->
+<section class="card" id="practice">
+  <h2>6. Practice: calculate by hand</h2>
+  <p class="lead">Work each answer out on paper first, then check it. The working stays hidden until you open it.</p>
+  <div id="drills"></div>
+
+  <h3>Endless practice</h3>
+  <div class="drill" id="random-drill"></div>
+</section>
+
+<!-- =============================================================== 7 -->
+<section class="card" id="notes">
+  <h2>7. Learning notes</h2>
+  <div class="notes-grid">
+    <div>
+      <h3>What I learned</h3>
+      <ul>
+        <li>Without padding, every layer shrinks the image by <code>f − 1</code>, and border pixels are used less than centre pixels.</li>
+        <li>Zero padding adds <code>p</code> rings of zeros. <code>p = (f − 1) / 2</code> keeps the size (<b>same</b>); <code>p = 0</code> is <b>valid</b>.</li>
+        <li>Stride is how far the filter jumps. <code>s = 2</code> roughly halves height and width.</li>
+        <li>A bigger stride is faster, uses less memory and parameters, and lets later layers see bigger patterns, but it can skip detail.</li>
+        <li>Conv layer parameters don't depend on image size. The Dense layer after <code>Flatten</code> does, which is where padding and stride change the model size.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Formulas</h3>
+      <div class="table-wrap"><table class="vars">
+        <tr><td>Padded size</td><td><code>n + 2p</code></td></tr>
+        <tr><td>Output (stride 1)</td><td><code>n + 2p − f + 1</code></td></tr>
+        <tr><td>Output (general)</td><td><code>⌊(n + 2p − f) / s⌋ + 1</code></td></tr>
+        <tr><td>Same padding</td><td><code>p = (f − 1) / 2</code></td></tr>
+        <tr><td>Keras <code>'same'</code></td><td><code>⌈n / s⌉</code></td></tr>
+        <tr><td>Conv2D params</td><td><code>(f·f·C<sub>in</sub> + 1) · filters</code></td></tr>
+        <tr><td>Dense params</td><td><code>inputs · units + units</code></td></tr>
+      </table></div>
+    </div>
+    <div>
+      <h3>Common mistakes</h3>
+      <ul>
+        <li><code>(n − f / s) + 1</code>: divide the whole <code>(n + 2p − f)</code> by <code>s</code>.</li>
+        <li>Forgetting the 2 in <code>2p</code>: padding goes on both sides.</li>
+        <li>Rounding up instead of down.</li>
+        <li>"Padding is always 1": it is <code>(f − 1) / 2</code>.</li>
+        <li>Thinking conv parameters grow with image size: they don't.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Key terms</h3>
+      <dl class="terms">
+        <dt>Padding</dt><dd>extra pixels (usually 0) added around the image</dd>
+        <dt>Valid</dt><dd>no padding; the output shrinks</dd>
+        <dt>Same</dt><dd>enough padding to keep the output size</dd>
+        <dt>Stride</dt><dd>step size of the sliding window</dd>
+        <dt>Downsampling</dt><dd>making the feature map smaller</dd>
+        <dt>Coverage</dt><dd>how many window positions include a pixel</dd>
+      </dl>
+    </div>
+  </div>
+
+  <h3>Self-test</h3>
+  <details class="qa"><summary>1. A 32×32 image goes through a 5×5 filter with no padding and stride 1. What is the output size, and how much padding would keep it 32×32?</summary>
+    <p><code>32 − 5 + 1 = 28</code>, so 28×28. Same padding: <code>p = (5 − 1) / 2 = 2</code>.</p></details>
+  <details class="qa"><summary>2. Why is a corner pixel used only once by a 3×3 filter without padding?</summary>
+    <p>The only window that contains the top-left pixel is the one whose top-left corner is that pixel. Any other position would need part of the window outside the image.</p></details>
+  <details class="qa"><summary>3. n = 9, f = 3, p = 0, s = 2. Output size? Is any pixel skipped?</summary>
+    <p><code>⌊(9 − 3) / 2⌋ + 1 = 3 + 1 = 4</code>. <code>9 − 3 = 6</code> is a multiple of 2, so nothing is skipped.</p></details>
+  <details class="qa"><summary>4. In the notebook, why does stride 2 in the first layer cut the parameters from 3.23 M to 0.82 M?</summary>
+    <p>It halves height and width (28 → 14), so Flatten gives 14·14·32 = 6,272 numbers instead of 25,088. Each connects to 128 Dense neurons: 6,272·128 + 128 = 802,944 instead of 3,211,392. The conv layers stay at 320 + 9,248 + 9,248.</p></details>
+  <details class="qa"><summary>5. Give two reasons to use stride 2 and one risk.</summary>
+    <p>Faster (fewer positions, fewer multiplications) and smaller (fewer parameters, less memory); later layers also see larger patterns. Risk: detail between positions is skipped, and leftover rows/columns can be ignored.</p></details>
+
+  <h3>Sources</h3>
+  <ul class="links">
+    <li><a href="https://d2l.ai/chapter_convolutional-neural-networks/padding-and-strides.html">Dive into Deep Learning §7.3: Padding and Stride</a></li>
+    <li><a href="https://cs231n.github.io/convolutional-networks/">Stanford CS231n: Convolutional Networks</a></li>
+    <li>V. Dumoulin &amp; F. Visin, <a href="https://arxiv.org/abs/1603.07285">A guide to convolution arithmetic for deep learning</a> and its <a href="https://github.com/vdumoulin/conv_arithmetic">animations</a></li>
+    <li><a href="https://keras.io/api/layers/convolution_layers/convolution2d/">Keras Conv2D documentation</a></li>
+  </ul>
+</section>
+
+</main>
+
+<footer>
+  Computer Vision Learning · Day 5 · <a href="../index.html">Home</a> · <a href="https://github.com/shamiulriyad/Computer-Vision-Learning">Source on GitHub</a>
+</footer>
+
+<script>
+'use strict';
+
+/* =====================================================================
+   1. MATHS: pure functions, no DOM. Everything on the page is computed
+      from these, nothing is hard-coded.
+   ===================================================================== */
+const PS = {
+  /** Output size of a convolution: floor((n + 2p - f) / s) + 1 */
+  outSize: (n, f, p, s) => Math.floor((n + 2 * p - f) / s) + 1,
+
+  /** Keras output size: 'same' -> ceil(n / s), 'valid' -> floor((n - f) / s) + 1 */
+  kerasOut: (n, f, s, padding) => padding === 'same' ? Math.ceil(n / s) : Math.floor((n - f) / s) + 1,
+
+  /** Parameters of a Conv2D layer: one F×F×C kernel + 1 bias per filter */
+  convParams: (f, cin, filters) => (f * f * cin + 1) * filters,
+
+  /** Parameters of a Dense layer: weights + biases */
+  denseParams: (inputs, units) => inputs * units + units,
+
+  /** Surround a matrix with p rings of zeros */
+  pad(A, p) {
+    const rows = A.length + 2 * p, cols = A[0].length + 2 * p;
+    return Array.from({ length: rows }, (_, r) => Array.from({ length: cols }, (_, c) => {
+      const rr = r - p, cc = c - p;
+      return rr >= 0 && cc >= 0 && rr < A.length && cc < A[0].length ? A[rr][cc] : 0;
+    }));
+  },
+
+  /** Deterministic small "image": digits 0..4 from a seeded generator */
+  input(n, seed) {
+    let x = seed % 2147483647 || 1;
+    return Array.from({ length: n }, () => Array.from({ length: n }, () => {
+      x = (x * 16807) % 2147483647;
+      return x % 5;
+    }));
+  },
+
+  /** Kernels that make sense for any size f */
+  kernel(type, f) {
+    return Array.from({ length: f }, (_, r) => Array.from({ length: f }, (_, c) => {
+      if (type === 'sum' || f === 1) return 1;
+      if (type === 'edge') return c === 0 ? 1 : c === f - 1 ? -1 : 0;   // left col +1, right col -1
+      return r === 0 ? 1 : r === f - 1 ? -1 : 0;                        // top row +1, bottom row -1
+    }));
+  },
+
+  /** Every window position on an N×N (already padded) input, row by row */
+  positions(N, f, s) {
+    const H = Math.floor((N - f) / s) + 1, out = [];
+    for (let i = 0; i < H; i++) for (let j = 0; j < H; j++) out.push({ i, j, r: i * s, c: j * s });
+    return out;
+  },
+
+  /** How many window positions cover each cell of an N×N input */
+  coverage(N, f, s) {
+    const cov = Array.from({ length: N }, () => Array(N).fill(0));
+    for (const { r, c } of PS.positions(N, f, s))
+      for (let m = 0; m < f; m++) for (let k = 0; k < f; k++) cov[r + m][c + k]++;
+    return cov;
+  },
+
+  /** One output value: element-wise multiply the window by the kernel, then add */
+  windowSum(P, r, c, K) {
+    const terms = [];
+    let sum = 0;
+    for (let m = 0; m < K.length; m++) for (let k = 0; k < K.length; k++) {
+      const a = P[r + m][c + k], b = K[m][k];
+      terms.push([a, b]);
+      sum += a * b;
+    }
+    return { terms, sum };
+  },
+
+  /** Full feature map (cross-correlation, as CNN libraries compute it) */
+  conv(P, K, s) {
+    const H = Math.floor((P.length - K.length) / s) + 1;
+    return Array.from({ length: H }, (_, i) => Array.from({ length: H }, (_, j) => PS.windowSum(P, i * s, j * s, K).sum));
+  },
+};
+
+/* =====================================================================
+   2. SMALL DOM HELPERS
+   ===================================================================== */
+const $ = (sel, root = document) => root.querySelector(sel);
+function h(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k === 'html') e.innerHTML = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) e.append(kid);
+  return e;
+}
+const fmt = x => x.toLocaleString('en-US');
+const neg = x => (x < 0 ? '(−' + Math.abs(x) + ')' : String(x));
+const minus = x => (x < 0 ? '−' + Math.abs(x) : String(x));
+
+/**
+ * Draw a matrix as a grid of cells.
+ * opts: label, pad (ring width shown as dashed padding), cell (px), max (for tint),
+ *       cov (coverage grid: hatches 0-coverage cells), showCov (small count badge),
+ *       starts (Set of "r,c" window corners), blank (true = all cells '?')
+ * Returns { root, grid, cells[r][c], win }.
+ */
+function drawMatrix(A, opts = {}) {
+  const rows = A.length, cols = A[0].length, p = opts.pad || 0;
+  const grid = h('div', { class: 'matrix__grid', style: `--cols:${cols}` });
+  if (opts.cell) grid.style.setProperty('--cell', opts.cell + 'px');
+  const max = opts.max ?? Math.max(1, ...A.flat().map(Math.abs));
+  const cells = [];
+  for (let r = 0; r < rows; r++) {
+    cells.push([]);
+    for (let c = 0; c < cols; c++) {
+      const isPad = p > 0 && (r < p || c < p || r >= rows - p || c >= cols - p);
+      const cell = h('div', { class: 'cell' + (isPad ? ' cell--pad' : '') });
+      if (opts.blank) cell.classList.add('cell--blank');
+      else setCell(cell, A[r][c], max, isPad);
+      if (opts.cov) {
+        if (opts.cov[r][c] === 0) cell.classList.add('cell--unused');
+        if (opts.showCov) cell.append(h('sup', { class: 'cov', title: 'times covered' }, String(opts.cov[r][c])));
+      }
+      if (opts.starts && opts.starts.has(r + ',' + c)) cell.classList.add('cell--start');
+      grid.append(cell);
+      cells[r].push(cell);
+    }
+  }
+  const win = h('div', { class: 'matrix__window', hidden: true });
+  grid.append(win);
+  const root = h('figure', { class: 'matrix' },
+    opts.label ? h('figcaption', { class: 'matrix__label', html: opts.label }) : null,
+    h('div', { class: 'matrix__wrap' }, grid));
+  return { root, grid, cells, win };
+}
+
+/** Write a value into a cell and tint it blue (positive) / red (negative) */
+function setCell(cell, v, max, isPad = false) {
+  const sup = cell.querySelector('.cov');
+  cell.classList.remove('cell--blank', 'pos', 'neg');
+  cell.textContent = minus(v);
+  if (sup) cell.append(sup);
+  if (!isPad && v !== 0) {
+    cell.classList.add(v > 0 ? 'pos' : 'neg');
+    cell.style.setProperty('--a', (0.12 + 0.5 * Math.min(1, Math.abs(v) / max)).toFixed(2));
+  }
+}
+function blankCell(cell) {
+  cell.classList.remove('pos', 'neg');
+  cell.classList.add('cell--blank');
+  cell.textContent = '';
+}
+function placeWindow(win, r, c, hgt, wid) {
+  win.hidden = false;
+  win.style.setProperty('--wr', r); win.style.setProperty('--wc', c);
+  win.style.setProperty('--wh', hgt); win.style.setProperty('--ww', wid);
+}
+function fillSelect(sel, values, value, label = v => v) {
+  sel.replaceChildren(...values.map(v => h('option', { value: v }, label(v))));
+  sel.value = value;
+}
+const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+
+/* =====================================================================
+   3. SECTION 1: shrinking layers + coverage maps
+   ===================================================================== */
+function renderShrink() {
+  const L = +$('#shrink-layers').value, f = +$('#shrink-f').value, n = 28;
+  $('#shrink-layers-out').textContent = L;
+  const box = (size, label) => size > 0
+    ? h('div', { class: 'sbox' }, h('i', { style: `--s:${Math.max(4, size * 3)}px` }), label)
+    : h('div', { class: 'sbox sbox--gone' }, h('i'), 'gone');
+  const row = (name, sub, sizes) => h('div', { class: 'shrink__row' },
+    h('div', { class: 'shrink__name' }, name, h('small', {}, sub)),
+    h('div', { class: 'shrink__boxes' }, sizes.map((s, k) => box(s, s > 0 ? `${k === 0 ? 'in ' : ''}${s}×${s}` : ''))));
+  const valid = [n], same = [n];
+  for (let k = 0; k < L; k++) { valid.push(PS.outSize(valid[k], f, 0, 1)); same.push(n); }
+  $('#shrink').replaceChildren(
+    row("'valid'", 'p = 0', valid),
+    row("'same'", `p = ${(f - 1) / 2}`, same));
+  const last = valid[valid.length - 1];
+  $('#shrink-note').innerHTML = last > 0
+    ? `Valid: each layer loses f − 1 = ${f - 1} pixels, so after ${L} layer${L > 1 ? 's' : ''}: 28 − ${L}·${f - 1} = <b>${last}×${last}</b>. Same padding keeps <b>28×28</b> at every layer.`
+    : `After ${L} valid layers the image is gone: 28 − ${L}·${f - 1} ≤ 0. A deep network without padding simply can't be built.`;
+}
+
+function renderCoverageMaps() {
+  const n = 6, f = 3;
+  // p = 0: coverage on the image itself
+  const c0 = PS.coverage(n, f, 1);
+  // p = 1: coverage on the padded image, then keep only the original 6×6
+  const c1 = PS.coverage(n + 2, f, 1).slice(1, -1).map(r => r.slice(1, -1));
+  $('#cov-valid').replaceChildren(drawMatrix(c0, { cell: 36, max: 9, label: 'times each pixel is covered' }).root);
+  $('#cov-same').replaceChildren(drawMatrix(c1, { cell: 36, max: 9, label: 'times each pixel is covered' }).root);
+}
+
+/* =====================================================================
+   4. SECTION 2: the animator
+   ===================================================================== */
+const A = { n: 5, f: 3, p: 1, s: 2, kernel: 'edge', seed: 7, k: -1, timer: null };
+const ui = {};
+
+const PRESETS = [
+  { name: 'Valid', n: 5, f: 3, p: 0, s: 1 },
+  { name: 'Same', n: 5, f: 3, p: 1, s: 1 },
+  { name: 'Stride 2', n: 7, f: 3, p: 0, s: 2 },
+  { name: 'Same + stride 2', n: 5, f: 3, p: 1, s: 2 },
+  { name: 'Leftover (s = 2)', n: 6, f: 3, p: 0, s: 2 },
+  { name: '5×5 filter, same', n: 6, f: 5, p: 2, s: 1 },
+];
+
+function setupAnimator() {
+  fillSelect($('#cfg-n'), range(3, 9), A.n, v => `${v}×${v}`);
+  fillSelect($('#cfg-f'), range(1, 5), A.f, v => `${v}×${v}`);
+  fillSelect($('#cfg-p'), range(0, 3), A.p);
+  fillSelect($('#cfg-s'), range(1, 4), A.s);
+  for (const id of ['n', 'f', 'p', 's'])
+    $('#cfg-' + id).addEventListener('change', e => { A[id] = +e.target.value; build(); });
+  $('#cfg-k').addEventListener('change', e => { A.kernel = e.target.value; build(); });
+  $('#cfg-cov').addEventListener('change', build);
+  $('#cfg-shuffle').addEventListener('click', () => { A.seed = (A.seed * 31 + 11) % 997 + 1; build(); });
+  for (const pr of PRESETS)
+    $('#presets').append(h('button', { class: 'btn btn--sm', type: 'button', onclick: () => loadPreset(pr) }, pr.name));
+
+  $('#btn-next').addEventListener('click', () => { stop(); go(A.k + 1); });
+  $('#btn-prev').addEventListener('click', () => { stop(); go(A.k - 1); });
+  $('#btn-reset').addEventListener('click', () => { stop(); go(-1); });
+  $('#btn-play').addEventListener('click', () => (A.timer ? stop() : play()));
+  $('#btn-speed').addEventListener('change', () => { if (A.timer) { stop(); play(); } });
+  $('#stepper').addEventListener('keydown', e => {
+    if (e.target.closest('select, input, button')) return;
+    if (e.key === 'ArrowRight') { stop(); go(A.k + 1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft') { stop(); go(A.k - 1); e.preventDefault(); }
+    else if (e.key === ' ') { A.timer ? stop() : play(); e.preventDefault(); }
+  });
+  // Re-fit the cell size when the width changes (not on mobile address-bar height changes).
+  let t, lastW = window.innerWidth;
+  window.addEventListener('resize', () => {
+    if (window.innerWidth === lastW) return;
+    lastW = window.innerWidth;
+    clearTimeout(t);
+    t = setTimeout(() => { const k = A.k; build(); go(k); }, 200);
+  });
+}
+
+function loadPreset(pr, scroll = false) {
+  Object.assign(A, { n: pr.n, f: pr.f, p: pr.p, s: pr.s });
+  for (const id of ['n', 'f', 'p', 's']) $('#cfg-' + id).value = A[id];
+  build();
+  if (scroll) $('#animate').scrollIntoView({ behavior: 'smooth' });
+}
+
+/** Formula line with the current numbers substituted */
+function formulaHTML(n, f, p, s) {
+  const N = n + 2 * p, top = N - f, q = top / s, out = PS.outSize(n, f, p, s);
+  const qs = Number.isInteger(q) ? q : q.toFixed(2).replace(/0$/, '');
+  let txt = `Padded size N = n + 2p = ${n} + 2·${p} = <b>${N}</b> &nbsp;·&nbsp; Output = ⌊(${n} + 2·${p} − ${f}) / ${s}⌋ + 1 = ⌊${minus(top)} / ${s}⌋ + 1 = ⌊${qs}⌋ + 1 = `;
+  if (out < 1) return txt + `<span style="color:var(--bad)"><b>${out}</b>: the filter doesn't fit</span>`;
+  txt += `<span class="hl">${out}</span> → output <b>${out}×${out}</b>`;
+  if (out === n) txt += ' (same size as the input)';
+  else if (out < n) txt += ` (shrinks by ${n - out})`;
+  else txt += ` (grows by ${out - n}: more padding than needed)`;
+  return txt;
+}
+
+function cellSizeFor(N) {
+  const avail = Math.min(($('#stage').clientWidth || 600) - 24, 560);
+  return Math.max(20, Math.min(46, Math.floor(avail / N) - 3));
+}
+
+function build() {
+  stop();
+  const { n, f, p, s } = A;
+  const N = n + 2 * p, out = PS.outSize(n, f, p, s);
+  $('#anim-formula').innerHTML = formulaHTML(n, f, p, s);
+  const ok = out >= 1;
+  for (const id of ['#btn-next', '#btn-prev', '#btn-play', '#btn-reset']) $(id).disabled = !ok;
+  if (!ok) {
+    $('#stage').replaceChildren(h('div', { class: 'warnbox' }, `A ${f}×${f} filter does not fit inside a ${N}×${N} padded input. Use a smaller filter or more padding.`));
+    $('#narration').textContent = ''; $('#sumline').textContent = ''; $('#counter').textContent = '';
+    return;
+  }
+  A.I = PS.input(n, A.seed);
+  A.P = PS.pad(A.I, p);
+  A.K = PS.kernel(A.kernel, f);
+  A.pos = PS.positions(N, f, s);
+  A.cov = PS.coverage(N, f, s);
+  A.O = PS.conv(A.P, A.K, s);
+  A.leftover = (N - f) % s;
+
+  const cell = cellSizeFor(N);
+  const showCov = $('#cfg-cov').checked;
+  ui.in = drawMatrix(A.P, { cell, pad: p, max: 4, cov: A.cov, showCov, label: p ? `Input ${n}×${n} + padding ${p} → ${N}×${N}` : `Input ${n}×${n} (no padding)` });
+  ui.k = drawMatrix(A.K, { cell: Math.min(cell, 40), max: 1, label: `Kernel ${f}×${f}` });
+  ui.out = drawMatrix(A.O, { cell: Math.min(cell + 4, 46), blank: true, label: `Output ${out}×${out}` });
+  $('#stage').replaceChildren(ui.in.root, h('div', { class: 'op', 'aria-hidden': 'true' }, '⊛'), ui.k.root,
+    h('div', { class: 'op', 'aria-hidden': 'true' }, '→'), ui.out.root);
+  go(-1);
+}
+
+function go(k) {
+  if (!A.pos) return;
+  const total = A.pos.length;
+  A.k = Math.max(-1, Math.min(total - 1, k));
+  const { f, s, p, n } = A, N = n + 2 * p, out = Math.sqrt(total);
+
+  ui.in.cells.flat().forEach(c => c.classList.remove('in-window'));
+  A.pos.forEach((pos, idx) => {
+    const c = ui.out.cells[pos.i][pos.j];
+    c.classList.toggle('is-current', idx === A.k);
+    if (idx <= A.k) setCell(c, A.O[pos.i][pos.j], Math.max(1, ...A.O.flat().map(Math.abs)));
+    else blankCell(c);
+  });
+
+  $('#counter').textContent = `${A.k + 1} / ${total}`;
+  $('#btn-prev').disabled = A.k < 0;
+  $('#btn-next').disabled = A.k >= total - 1;
+
+  if (A.k < 0) {
+    ui.in.win.hidden = true;
+    $('#narration').innerHTML = p
+      ? `Ready. The ${n}×${n} input has <b>${p}</b> ring${p > 1 ? 's' : ''} of zeros around it (dashed), so it is now ${N}×${N}. The filter will visit <b>${total}</b> positions, jumping <b>${s}</b> cell${s > 1 ? 's' : ''} at a time. Press <b>Next</b> or <b>Play</b>.`
+      : `Ready. No padding: the ${f}×${f} filter must stay inside the ${n}×${n} input. It will visit <b>${total}</b> positions, jumping <b>${s}</b> cell${s > 1 ? 's' : ''} at a time. Press <b>Next</b> or <b>Play</b>.`;
+    $('#sumline').textContent = '';
+    return;
+  }
+
+  const pos = A.pos[A.k];
+  placeWindow(ui.in.win, pos.r, pos.c, f, f);
+  for (let m = 0; m < f; m++) for (let q = 0; q < f; q++) ui.in.cells[pos.r + m][pos.c + q].classList.add('in-window');
+
+  const { terms, sum } = PS.windowSum(A.P, pos.r, pos.c, A.K);
+  const padHits = terms.length - countReal(pos, f);
+  $('#sumline').innerHTML = terms.map(([a, b]) => `${minus(a)}×${neg(b)}`).join(' + ') + ` = <span class="pill">${minus(sum)}</span>`;
+
+  let move;
+  if (A.k === total - 1) {
+    move = `<b>Done.</b> All ${total} positions visited, so the output is ${out}×${out}.`;
+    if (A.leftover) move += ` The last ${A.leftover} row${A.leftover > 1 ? 's' : ''} and column${A.leftover > 1 ? 's' : ''} (hatched) were never covered: N − f = ${N - f} is not a multiple of s = ${s}, so the floor in the formula drops them.`;
+  } else if (A.pos[A.k + 1].i === pos.i) move = `Next: slide <b>${s}</b> column${s > 1 ? 's' : ''} right.`;
+  else move = `End of the row: move <b>${s}</b> row${s > 1 ? 's' : ''} down and back to column 0.`;
+
+  $('#narration').innerHTML =
+    `Window corner at row ${pos.r}, column ${pos.c} of the ${p ? 'padded ' : ''}input (= i·s, j·s = ${pos.i}·${s}, ${pos.j}·${s}). ` +
+    (padHits ? `${padHits} of its ${f * f} cells are padding zeros, so those products add nothing. ` : '') +
+    `Multiply element-wise and add → <b>O[${pos.i}][${pos.j}] = ${minus(sum)}</b>. ${move}`;
+}
+
+/** How many cells of the window lie on the real image (not padding) */
+function countReal(pos, f) {
+  const p = A.p, n = A.n;
+  let c = 0;
+  for (let m = 0; m < f; m++) for (let q = 0; q < f; q++) {
+    const r = pos.r + m - p, cc = pos.c + q - p;
+    if (r >= 0 && cc >= 0 && r < n && cc < n) c++;
+  }
+  return c;
+}
+
+function play() {
+  if (!A.pos) return;
+  if (A.k >= A.pos.length - 1) go(-1);
+  $('#btn-play').textContent = '⏸ Pause';
+  A.timer = setInterval(() => {
+    if (A.k >= A.pos.length - 1) return stop();
+    go(A.k + 1);
+  }, +$('#btn-speed').value);
+}
+function stop() {
+  clearInterval(A.timer);
+  A.timer = null;
+  $('#btn-play').textContent = '▶ Play';
+}
+
+/* =====================================================================
+   5. SECTION 3: stride comparison
+   ===================================================================== */
+function renderStrideCompare() {
+  const n = 7, f = 3;
+  const host = $('#stride-compare');
+  host.replaceChildren();
+  for (const s of [1, 2, 3]) {
+    const cov = PS.coverage(n, f, s), pos = PS.positions(n, f, s), out = PS.outSize(n, f, 0, s);
+    const starts = new Set(pos.map(q => q.r + ',' + q.c));
+    const unused = cov.flat().filter(v => v === 0).length;
+    host.append(h('div', { class: 'panel' },
+      h('h4', {}, `Stride s = ${s}`),
+      drawMatrix(cov, { cell: 28, max: 9, cov, starts }).root,
+      h('p', { html: `Output: ⌊(7 − 3) / ${s}⌋ + 1 = <b>${out}×${out}</b>` }),
+      h('p', { html: `Positions: ${out}·${out} = <b>${pos.length}</b> → ${pos.length}·9 = <b>${pos.length * 9}</b> multiplications` }),
+      h('p', { html: unused ? `<span style="color:var(--bad)">${unused} pixels never used</span>` : 'Every pixel is used' })));
+  }
+}
+
+/* =====================================================================
+   6. SECTION 4: calculator
+   ===================================================================== */
+function renderCalc() {
+  const v = id => Math.max(+$(id).min, Math.floor(+$(id).value || 0));
+  const n = v('#calc-n'), f = v('#calc-f'), p = v('#calc-p'), s = Math.max(1, v('#calc-s'));
+  const top = n + 2 * p - f, out = PS.outSize(n, f, p, s), rem = ((top % s) + s) % s;
+  const lines = [
+    `1. Padded size:   n + 2p = ${n} + 2·${p} = ${n + 2 * p}`,
+    `2. Room to move:  n + 2p − f = ${n + 2 * p} − ${f} = ${minus(top)}`,
+    `3. Jumps:         ${minus(top)} / ${s} = ${Number.isInteger(top / s) ? top / s : (top / s).toFixed(3)}  → floor → ${Math.floor(top / s)}`,
+    `4. Add start:     ${Math.floor(top / s)} + 1 = <span class="hl">${out}</span>`,
+  ];
+  if (out < 1) lines.push(`<span style="color:var(--bad)">The filter is bigger than the padded input: no valid output.</span>`);
+  else {
+    lines.push(`→ output ${out}×${out}` + (out === n ? ' (same as input)' : ''));
+    if (rem) lines.push(`<span class="muted">Leftover: ${rem} row${rem > 1 ? 's' : ''}/column${rem > 1 ? 's' : ''} at the end are never covered (${minus(top)} mod ${s} = ${rem}).</span>`);
+    lines.push(`<span class="muted">Same padding for f = ${f}: p = (f − 1) / 2 = ${(f - 1) / 2}${f % 2 ? '' : ' (even f: not a whole number, so libraries pad one side more)'}</span>`);
+  }
+  $('#calc-out').innerHTML = lines.map(l => `<div>${l}</div>`).join('');
+}
+
+/* =====================================================================
+   7. SECTION 5: network planner (mirrors the Day-5 notebook)
+   ===================================================================== */
+const PLAN = { layers: [{ pad: 'same', s: 1 }, { pad: 'same', s: 1 }, { pad: 'same', s: 1 }] };
+const NOTEBOOK = [
+  { name: "same, stride 1", layers: [['same', 1], ['same', 1], ['same', 1]] },
+  { name: "valid, stride 1", layers: [['valid', 1], ['valid', 1], ['valid', 1]] },
+  { name: "same, stride 2 (1st)", layers: [['same', 2], ['same', 1], ['same', 1]] },
+];
+
+/** Shapes and parameters of the whole model; returns null if a layer has no output */
+function planModel(n, cin, filters, f, layers, dense = 128, classes = 10) {
+  const rows = [];
+  let size = n, ch = cin;
+  for (const [idx, L] of layers.entries()) {
+    const out = PS.kerasOut(size, f, L.s, L.pad);
+    const params = PS.convParams(f, ch, filters);
+    rows.push({ name: `Conv2D ${idx + 1}`, desc: `${L.pad}, stride ${L.s}`, shape: out >= 1 ? `${out} × ${out} × ${filters}` : '—', params,
+      how: `(${f}·${f}·${ch} + 1)·${filters}`, err: out < 1 });
+    if (out < 1) return { rows, total: null };
+    size = out; ch = filters;
+  }
+  const flat = size * size * ch;
+  rows.push({ name: 'Flatten', desc: '', shape: fmt(flat), params: 0, how: `${size}·${size}·${ch}` });
+  rows.push({ name: 'Dense', desc: `${dense}, relu`, shape: String(dense), params: PS.denseParams(flat, dense), how: `${fmt(flat)}·${dense} + ${dense}`, big: true });
+  rows.push({ name: 'Dense', desc: `${classes}, softmax`, shape: String(classes), params: PS.denseParams(dense, classes), how: `${dense}·${classes} + ${classes}` });
+  return { rows, total: rows.reduce((t, r) => t + r.params, 0), flat };
+}
+
+function plannerInputs() {
+  const v = (id, lo, hi) => Math.min(hi, Math.max(lo, Math.floor(+$(id).value || lo)));
+  return { n: v('#pl-n', 4, 256), c: v('#pl-c', 1, 4), k: v('#pl-k', 1, 256), f: +$('#pl-f').value };
+}
+
+function setupPlanner() {
+  for (const m of NOTEBOOK)
+    $('#planner-presets').append(h('button', { class: 'btn btn--sm', type: 'button', onclick: () => {
+      PLAN.layers = m.layers.map(([pad, s]) => ({ pad, s }));
+      $('#pl-n').value = 28; $('#pl-c').value = 1; $('#pl-k').value = 32; $('#pl-f').value = 3;
+      renderPlanner();
+    } }, m.name));
+  for (const id of ['#pl-n', '#pl-c', '#pl-k', '#pl-f']) $(id).addEventListener('input', renderPlanner);
+}
+
+function renderPlanner() {
+  const { n, c, k, f } = plannerInputs();
+  // layer controls
+  $('#planner-layers').replaceChildren(...PLAN.layers.map((L, idx) => {
+    const pad = h('select', { class: 'select', onchange: e => { L.pad = e.target.value; renderPlanner(); } },
+      h('option', { value: 'same' }, "'same'"), h('option', { value: 'valid' }, "'valid'"));
+    pad.value = L.pad;
+    const st = h('select', { class: 'select', onchange: e => { L.s = +e.target.value; renderPlanner(); } },
+      h('option', { value: 1 }, '1'), h('option', { value: 2 }, '2'), h('option', { value: 3 }, '3'));
+    st.value = L.s;
+    return h('div', { class: 'planner-layer' }, h('b', {}, `Conv2D ${idx + 1}`),
+      h('label', {}, 'padding', pad), h('label', {}, 'strides', st));
+  }));
+
+  const plan = planModel(n, c, k, f, PLAN.layers);
+  const head = h('tr', {}, h('th', {}, 'Layer'), h('th', {}, 'Output shape'), h('th', { class: 'r' }, 'Params'), h('th', {}, 'How'));
+  const body = plan.rows.map(r => h('tr', { class: r.err ? 'err' : null },
+    h('td', {}, h('b', {}, r.name), r.desc ? ' ' : '', r.desc ? h('span', { class: 'muted' }, `(${r.desc})`) : ''),
+    h('td', { class: 'mono' }, r.shape),
+    h('td', { class: 'r' }, r.big ? h('span', { class: 'hl' }, fmt(r.params)) : fmt(r.params)),
+    h('td', { class: 'muted mono' }, r.how)));
+  const tot = h('tr', { class: 'total' }, h('td', {}, 'Total'), h('td'), h('td', { class: 'r' }, plan.total == null ? '—' : fmt(plan.total)), h('td'));
+  $('#planner-table').replaceChildren(head, ...body, tot);
+
+  // bars: the three notebook models (at the notebook's settings) + yours
+  const ref = NOTEBOOK.map(m => ({ name: m.name, total: planModel(28, 1, 32, 3, m.layers.map(([pad, s]) => ({ pad, s }))).total }));
+  const items = [...ref, { name: 'Your model', total: plan.total, you: true }];
+  const max = Math.max(...items.map(i => i.total || 0));
+  $('#planner-bars').replaceChildren(...items.map(i => h('div', { class: 'bar' + (i.you ? ' bar--you' : '') },
+    h('span', {}, i.you ? h('b', {}, i.name) : i.name),
+    h('div', { class: 'bar__track' }, h('div', { class: 'bar__fill', style: `width:${i.total ? (100 * i.total / max).toFixed(1) : 0}%` }),
+      h('span', { class: 'bar__val' }, i.total == null ? 'no output' : fmt(i.total))))));
+
+  const convSum = plan.rows.filter(r => r.name.startsWith('Conv')).reduce((t, r) => t + r.params, 0);
+  $('#planner-note').innerHTML = plan.total == null
+    ? '<b>The image disappeared:</b> a valid layer got an input smaller than the filter. Use same padding or a smaller stride.'
+    : `The conv layers have <b>${fmt(convSum)}</b> parameters whatever the padding or stride: a filter's weights depend only on its size, the input channels and the number of filters. ` +
+      `The <span class="hl">Dense</span> layer holds <b>${(100 * plan.rows.find(r => r.big).params / plan.total).toFixed(1)}%</b> of the model, and its size is <code>Flatten × 128</code>. ` +
+      `That's why a smaller feature map (valid padding or a stride) makes the whole model smaller.`;
+}
+
+/* =====================================================================
+   8. SECTION 6: practice
+   ===================================================================== */
+const DRILLS = [
+  { level: 'beginner', q: 'n = 6, f = 3, p = 0, s = 1. Output size?', a: 4,
+    work: '⌊(6 + 0 − 3) / 1⌋ + 1 = 3 + 1 = 4 → 4×4', demo: { n: 6, f: 3, p: 0, s: 1 } },
+  { level: 'beginner', q: 'n = 6, f = 3, p = 1, s = 1. Output size?', a: 6,
+    work: '⌊(6 + 2 − 3) / 1⌋ + 1 = 5 + 1 = 6 → 6×6, same as the input', demo: { n: 6, f: 3, p: 1, s: 1 } },
+  { level: 'beginner', q: 'Which padding p keeps the size for a 5×5 filter with stride 1?', a: 2,
+    work: 'p = (f − 1) / 2 = (5 − 1) / 2 = 2', demo: { n: 6, f: 5, p: 2, s: 1 } },
+  { level: 'intermediate', q: 'n = 7, f = 3, p = 0, s = 2. Output size?', a: 3,
+    work: '⌊(7 − 3) / 2⌋ + 1 = ⌊2⌋ + 1 = 3 → 3×3', demo: { n: 7, f: 3, p: 0, s: 2 } },
+  { level: 'intermediate', q: 'n = 6, f = 3, p = 0, s = 2. Output size? (Then watch which row is skipped.)', a: 2,
+    work: '⌊(6 − 3) / 2⌋ + 1 = ⌊1.5⌋ + 1 = 1 + 1 = 2 → 2×2. The last row and column are never covered.', demo: { n: 6, f: 3, p: 0, s: 2 } },
+  { level: 'intermediate', q: 'n = 32, f = 3, p = 1, s = 2. Output size?', a: 16,
+    work: '⌊(32 + 2 − 3) / 2⌋ + 1 = ⌊15.5⌋ + 1 = 15 + 1 = 16 → 16×16' },
+  { level: 'intermediate', q: 'How many parameters does Conv2D(16, kernel 3×3) have on an RGB input (3 channels)?', a: 448,
+    work: '(3·3·3 + 1)·16 = 28·16 = 448' },
+  { level: 'challenge', q: 'The ResNet stem: n = 224, f = 7, p = 3, s = 2. Output size?', a: 112,
+    work: '⌊(224 + 6 − 7) / 2⌋ + 1 = ⌊223 / 2⌋ + 1 = ⌊111.5⌋ + 1 = 111 + 1 = 112 → 112×112' },
+  { level: 'challenge', q: 'After the 3 conv layers the feature map is 14×14×32. How many parameters does the next Dense(128) layer have?', a: 802944,
+    work: 'Flatten: 14·14·32 = 6,272. Dense: 6,272·128 + 128 = 802,816 + 128 = 802,944 (the notebook\'s stride-2 model).' },
+];
+
+function drillUI(d, idx) {
+  const input = h('input', { class: 'num', type: 'number', 'aria-label': 'Your answer', style: 'width:7em' });
+  const fb = h('span', { class: 'feedback', 'aria-live': 'polite' });
+  const check = () => {
+    const ok = input.value !== '' && +input.value === d.a;
+    input.classList.toggle('ok', ok); input.classList.toggle('bad', !ok);
+    fb.className = 'feedback ' + (ok ? 'ok' : 'bad');
+    fb.textContent = input.value === '' ? 'Type an answer first.' : ok ? '✓ Correct' : '✗ Not quite. Check the working step by step.';
+  };
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
+  return h('div', { class: 'drill' },
+    h('p', { class: 'drill__q' }, h('span', { class: 'badge badge--' + d.level }, d.level), h('b', {}, `Q${idx + 1}.`), d.q),
+    h('div', { class: 'drill__row' }, input,
+      h('button', { class: 'btn btn--sm btn--primary', type: 'button', onclick: check }, 'Check'),
+      d.demo ? h('button', { class: 'btn btn--sm', type: 'button', onclick: () => loadPreset(d.demo, true) }, '▶ Watch it in the animator') : null,
+      fb),
+    h('details', {}, h('summary', {}, 'Show the working'), h('div', { class: 'workings' }, h('div', {}, d.work))));
+}
+
+function newRandomDrill() {
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  let n, f, p, s;
+  do { n = 5 + Math.floor(Math.random() * 60); f = pick([1, 3, 5, 7]); p = pick([0, 0, 1, 2, 3]); s = pick([1, 1, 2, 2, 3]); }
+  while (PS.outSize(n, f, p, s) < 1);
+  const top = n + 2 * p - f, out = PS.outSize(n, f, p, s);
+  const q = top / s;
+  const d = { level: 'intermediate', q: `n = ${n}, f = ${f}, p = ${p}, s = ${s}. Output size?`, a: out,
+    work: `⌊(${n} + ${2 * p} − ${f}) / ${s}⌋ + 1 = ⌊${top} / ${s}⌋ + 1 = ⌊${Number.isInteger(q) ? q : q.toFixed(2)}⌋ + 1 = ${Math.floor(q)} + 1 = ${out} → ${out}×${out}` };
+  const ui = drillUI(d, DRILLS.length);
+  ui.querySelector('.drill__row').append(h('button', { class: 'btn btn--sm', type: 'button', onclick: newRandomDrill }, '↻ New question'));
+  $('#random-drill').replaceWith(Object.assign(ui, { id: 'random-drill' }));
+}
+
+/* =====================================================================
+   9. START
+   ===================================================================== */
+$('#shrink-layers').addEventListener('input', renderShrink);
+$('#shrink-f').addEventListener('change', renderShrink);
+for (const id of ['#calc-n', '#calc-f', '#calc-p', '#calc-s']) $(id).addEventListener('input', renderCalc);
+
+renderShrink();
+renderCoverageMaps();
+setupAnimator();
+build();
+renderStrideCompare();
+renderCalc();
+setupPlanner();
+renderPlanner();
+$('#drills').replaceChildren(...DRILLS.map(drillUI));
+newRandomDrill();
+
+/* Self-check: the planner must reproduce the totals printed by the notebook. */
+(() => {
+  const expect = [3231498, 2002698, 823050];
+  NOTEBOOK.forEach((m, i) => {
+    const got = planModel(28, 1, 32, 3, m.layers.map(([pad, s]) => ({ pad, s }))).total;
+    if (got !== expect[i]) console.error(`Planner mismatch for "${m.name}": ${got} ≠ ${expect[i]}`);
+  });
+})();
+window.PSLab = { PS, planModel, NOTEBOOK };
+</script>
+</body>
+</html>

@@ -2,6 +2,10 @@
 
 Two settings that control the **size of every feature map** in a CNN: **padding** (add a border so the image doesn't shrink) and **stride** (how far the filter jumps each step). The theory is below; the notebook then builds three real Keras models on MNIST to show how each choice changes the output shape and the number of parameters.
 
+## ▶ [Open the Padding & Stride Lab](https://shamiulriyad.github.io/Computer-Vision-Learning/Day-5/padding_stride_lab.html)
+
+An interactive page: watch the filter slide over a padded input, compare strides, use the output-size calculator, rebuild the notebook's three models in a live network planner, and practise with checked answers. GitHub shows `.html` as source code, so use the link above (or open [padding_stride_lab.html](padding_stride_lab.html) locally in a browser).
+
 > 📓 **Notebook:** [padding_and_strides_demo.ipynb](padding_and_strides_demo.ipynb) · 📝 **Quick notes:** [learning.txt](learning.txt) · ⬅️ **Previous day:** [Day-4 Convolution Lab](https://shamiulriyad.github.io/Computer-Vision-Learning/Day-4/convolution_lab.html)
 
 | Symbol | Meaning |

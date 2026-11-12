@@ -6,6 +6,7 @@
 
 <a href="https://shamiulriyad.github.io/Computer-Vision-Learning/"><img src="https://img.shields.io/badge/Live_Website-Visit-4357e6?style=for-the-badge&logo=githubpages&logoColor=white" alt="Live website"></a>
 <a href="https://shamiulriyad.github.io/Computer-Vision-Learning/Day-4/convolution_lab.html"><img src="https://img.shields.io/badge/Convolution_Lab-Try_it_live-ffb534?style=for-the-badge&logo=html5&logoColor=black" alt="Convolution Lab: try it live"></a>
+<a href="https://shamiulriyad.github.io/Computer-Vision-Learning/Day-5/padding_stride_lab.html"><img src="https://img.shields.io/badge/Padding_%26_Stride_Lab-Try_it_live-e59400?style=for-the-badge&logo=html5&logoColor=white" alt="Padding and Stride Lab: try it live"></a>
 <a href="Day-5/README.md"><img src="https://img.shields.io/badge/New-Day_5_Padding_%26_Strides-0891b2?style=for-the-badge&logo=readthedocs&logoColor=white" alt="Day-5 notes: padding and strides"></a>
 
 <img src="https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.11">
@@ -25,6 +26,7 @@
 |---|---|---|
 | 🌐 | **[Website](https://shamiulriyad.github.io/Computer-Vision-Learning/)** | Homepage with every day of the journey |
 | ▶️ | **[Convolution Lab (live)](https://shamiulriyad.github.io/Computer-Vision-Learning/Day-4/convolution_lab.html)** | Interactive page: watch a filter slide, then practise by hand |
+| 🧪 | **[Padding & Stride Lab (live)](https://shamiulriyad.github.io/Computer-Vision-Learning/Day-5/padding_stride_lab.html)** | Animated padding and stride, calculator, network planner, practice |
 | 🆕 | **[Day-5 notes](Day-5/README.md)** | Padding and strides: theory, formulas, Keras experiment |
 | 📓 | **[Day-5 notebook](Day-5/padding_and_strides_demo.ipynb)** | Same vs valid vs stride 2 on MNIST |
 | 📘 | **[Day-4 notes](Day-4/README.md)** | Convolution maths: worked example, formulas, sources |
@@ -120,7 +122,7 @@ Every topic is marked ✅ and linked to the exact place it is taught. Click a to
 
 | Day | Topic | Status | Open |
 |:---:|---|:---:|---|
-| **05** | Padding and strides in a CNN | ✅ New | [Notes](Day-5/README.md) · [Notebook](Day-5/padding_and_strides_demo.ipynb) · [Quick notes](Day-5/learning.txt) |
+| **05** | Padding and strides in a CNN | ✅ New | [▶️ Live lab](https://shamiulriyad.github.io/Computer-Vision-Learning/Day-5/padding_stride_lab.html) · [Notes](Day-5/README.md) · [Notebook](Day-5/padding_and_strides_demo.ipynb) · [Quick notes](Day-5/learning.txt) |
 | **04** | The convolution operation (maths first) | ✅ Done | [▶️ Live lab](https://shamiulriyad.github.io/Computer-Vision-Learning/Day-4/convolution_lab.html) · [Notes](Day-4/README.md) · [Code](Day-4/) |
 | **03** | Convolutional Neural Networks (theory) | ✅ Done | [Notes](Day-3/README.md) · [Notebook](Day-3/filters_demo.ipynb) |
 | **02** | OpenCV fundamentals | ✅ Done | [Notebooks](Day-2/) |
@@ -129,6 +131,8 @@ Every topic is marked ✅ and linked to the exact place it is taught. Click a to
 
 ## Day 5: Padding and strides
 
+> **[▶️ Open the Padding & Stride Lab](https://shamiulriyad.github.io/Computer-Vision-Learning/Day-5/padding_stride_lab.html)**. It runs in the browser; nothing to install.
+
 📗 **[Read the full notes](Day-5/README.md)** · 📓 **[padding_and_strides_demo.ipynb](Day-5/padding_and_strides_demo.ipynb)** · 📝 **[Quick notes](Day-5/learning.txt)**
 
 How padding and stride decide the size of every feature map, and what that does to the size of the model.
@@ -136,6 +140,7 @@ How padding and stride decide the size of every feature map, and what that does 
 - **Padding**: why (shrinking images, lost borders), zero padding, `valid` vs `same`, `p = (f − 1) / 2`
 - **Stride**: what it is, and why `s > 1` means faster training and higher-level features
 - **Formula**: `⌊(n + 2p − f) / s⌋ + 1`, with a worked example (28 → 14)
+- **Interactive lab**: animated filter over padded input (any n, f, p, s), stride side by side, calculator, live network planner, 9 practice questions + endless random ones
 - **Experiment**: the same Keras CNN on MNIST three times:
 
 | Model | Conv output | Total params |
@@ -215,7 +220,7 @@ Computer-Vision-Learning/
 ├── Day-2/              OpenCV notebooks + data/ sample images
 ├── Day-3/              CNN notes, figures, filters notebook
 ├── Day-4/              Convolution Lab (HTML/JS), notes, NumPy verifier
-└── Day-5/              Padding & strides notes + Keras notebook
+└── Day-5/              Padding & Stride Lab (single HTML file), notes, Keras notebook
 ```
 
 <details>
