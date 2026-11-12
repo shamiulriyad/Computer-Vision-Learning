@@ -1,0 +1,118 @@
+Day-5: Padding and Strides in a CNN
+===================================
+Quick revision notes. Full notes: README.md   Notebook: padding_and_strides_demo.ipynb
+
+Symbols used below
+  n = input size (height or width)      f = filter (kernel) size
+  p = padding (pixels added per side)   s = stride (steps the filter moves)
+
+
+1. Padding in CNN
+-----------------
+
+What is padding?
+  Adding extra pixels (usually zeros) around the border of the image
+  before the filter slides over it.
+
+    Original 3x3        Padded with p = 1 (5x5)
+                         0 0 0 0 0
+      1 2 3              0 1 2 3 0
+      4 5 6     ->       0 4 5 6 0
+      7 8 9              0 7 8 9 0
+                         0 0 0 0 0
+
+Why use padding? (two problems without it)
+  1. The image shrinks after every convolution.
+       28x28 -> 26x26 -> 24x24 -> 22x22 after three 3x3 layers.
+       A deep network would shrink the image to nothing.
+  2. Border pixels are used less.
+       A corner pixel is covered by the filter only once,
+       a centre pixel up to 9 times (3x3 filter).
+       Information at the edges is lost.
+  Padding fixes both: the size stays the same and the edges get used fully.
+
+How does it work?
+  1. Add p rows/columns of zeros on every side -> new size is n + 2p
+  2. Slide the filter over the padded image as usual (stride 1)
+  3. Output size = n + 2p - f + 1
+
+Two types (Keras names)
+  padding='valid'  -> no padding (p = 0)       -> output shrinks: n - f + 1
+  padding='same'   -> enough padding to keep    -> output = input size
+                      the output the same size
+
+How much padding for 'same'?
+  p = (f - 1) / 2          (for odd f, stride 1)
+    f = 3 -> p = 1     <- this is why padding is "usually 1":
+    f = 5 -> p = 2        it is 1 only for the common 3x3 filter,
+    f = 7 -> p = 3        not for every filter size.
+
+Equation (stride 1)
+  Output = n + 2p - f + 1
+
+  Example: n = 28, f = 3
+    valid (p = 0): 28 + 0 - 3 + 1 = 26
+    same  (p = 1): 28 + 2 - 3 + 1 = 28   (size kept)
+
+
+2. Strides in CNN
+-----------------
+
+What is stride?
+  How many pixels the filter jumps each time it moves.
+    s = 1 -> move 1 pixel  (default, every position is visited)
+    s = 2 -> move 2 pixels (skip every other position, output ~ half size)
+
+Why use strides (s > 1)?
+  1. Faster computation  -> fewer filter positions = fewer multiplications
+  2. Less training time  -> smaller feature maps, far fewer parameters
+                            in the Dense layer after Flatten
+  3. High-level features -> the image is downsampled, so the next layers
+                            see a larger area of the original image and
+                            learn bigger patterns (shapes, objects)
+                            instead of small details (edges)
+  Trade-off: fine detail is skipped, so do not use a big stride too early.
+
+Equation (with padding and stride)
+  Output = floor( (n + 2p - f) / s ) + 1
+
+  floor = round DOWN. The +1 is outside the brackets.
+  With p = 0:  Output = floor( (n - f) / s ) + 1
+  With s = 1:  Output = n + 2p - f + 1   (the padding formula above)
+
+  Example: n = 28, f = 3, p = 1, s = 2
+    floor( (28 + 2 - 3) / 2 ) + 1 = floor(13.5) + 1 = 13 + 1 = 14
+
+
+3. What the notebook showed (MNIST 28x28, three Conv2D(32, 3x3) layers)
+-----------------------------------------------------------------------
+  Model                  Conv output sizes        Flatten   Total params
+  same,  stride 1        28 -> 28 -> 28          25,088    3,231,498
+  valid, stride 1        26 -> 24 -> 22          15,488    2,002,698
+  same,  stride 2 (1st)  14 -> 14 -> 14           6,272      823,050
+
+  - Conv layer params never change: 320, 9,248, 9,248 (depend only on f,
+    channels and number of filters, NOT on the image size).
+  - The difference is all in the Dense layer after Flatten:
+    bigger feature map -> more numbers -> many more weights.
+  - One stride of 2 cut the parameters by about 4x (3.23M -> 0.82M).
+
+  Param formula for Conv2D:  (f * f * input_channels + 1) * filters
+    first layer:  (3*3*1  + 1) * 32 = 320
+    next layers:  (3*3*32 + 1) * 32 = 9,248
+
+
+4. Keras code
+-------------
+  Conv2D(32, kernel_size=(3,3), padding='same',  activation='relu')   # keep size
+  Conv2D(32, kernel_size=(3,3), padding='valid', activation='relu')   # shrink by f-1
+  Conv2D(32, kernel_size=(3,3), padding='same', strides=(2,2))        # halve size
+
+
+5. Common mistakes
+------------------
+  - Writing (n - f / s) + 1: divide the WHOLE (n + 2p - f) by s, not only f
+  - Forgetting the 2 in 2p (padding is added on BOTH sides)
+  - Rounding up instead of down
+  - Thinking padding is always 1 (it is (f - 1) / 2, so 1 only for 3x3)
+  - Thinking conv params depend on image size (they don't; Dense params do)

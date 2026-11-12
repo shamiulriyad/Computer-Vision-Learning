@@ -251,7 +251,7 @@
 <header class="hero" id="top">
   <div class="wrap">
     <div>
-      <span class="eyebrow"><span class="dot" aria-hidden="true"></span> Day 4 is live: the Convolution Lab</span>
+      <span class="eyebrow"><span class="dot" aria-hidden="true"></span> New: Day 5, padding and strides</span>
       <h1>Learning <span class="gradient-text">Computer Vision</span>, one day at a time.</h1>
       <p class="lead">From reading images with OpenCV to the maths inside a CNN. Each day is hands-on notebooks, clear notes, and interactive pages you can actually play with.</p>
       <div class="cta">
@@ -288,8 +288,8 @@
 
 <div class="stats">
   <div class="wrap">
-    <div class="stat"><b class="gradient-text">3</b><span>learning days</span></div>
-    <div class="stat"><b class="gradient-text">38</b><span>topics to learn</span></div>
+    <div class="stat"><b class="gradient-text">4</b><span>learning days</span></div>
+    <div class="stat"><b class="gradient-text">48</b><span>topics to learn</span></div>
     <div class="stat"><b class="gradient-text">8</b><span>hand-calc exercises</span></div>
     <div class="stat"><b class="gradient-text">22/22</b><span>maths checks passing</span></div>
   </div>
@@ -306,9 +306,23 @@
 
       <div class="timeline">
         <article class="day day--featured reveal">
+          <div class="day__num">05</div>
+          <div class="card">
+            <div class="card__top"><h3>Padding and Strides</h3><span class="badge badge--new">New</span></div>
+            <p>Why convolution shrinks images and loses borders, how zero padding fixes it, and how a stride makes the network faster. Then the same Keras CNN on MNIST three ways: same, valid and stride 2, from 3.23&nbsp;M down to 0.82&nbsp;M parameters.</p>
+            <div class="tags"><span class="tag">Zero padding</span><span class="tag">Valid vs same</span><span class="tag">Stride</span><span class="tag">⌊(n + 2p − f) / s⌋ + 1</span><span class="tag">Keras Conv2D</span></div>
+            <div class="links">
+              <a class="btn btn--primary" href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-5/README.md" target="_blank" rel="noopener">Read the notes</a>
+              <a class="arrow-link" href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-5/padding_and_strides_demo.ipynb" target="_blank" rel="noopener">Keras notebook →</a>
+              <a class="arrow-link" href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-5/learning.txt" target="_blank" rel="noopener">Quick notes →</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="day reveal">
           <div class="day__num">04</div>
           <div class="card">
-            <div class="card__top"><h3>The Convolution Operation</h3><span class="badge badge--new">New · Interactive</span></div>
+            <div class="card__top"><h3>The Convolution Operation</h3><span class="badge">Done · Interactive</span></div>
             <p>How a CNN filter really works, with every multiplication written out: an animated sliding window, stride and padding, multiple filters, and 8 exercises with hidden step-by-step solutions.</p>
             <div class="tags"><span class="tag">Element-wise ⊙</span><span class="tag">Stride</span><span class="tag">Padding</span><span class="tag">Output size formula</span><span class="tag">Cross-correlation</span></div>
             <div class="links">
@@ -350,7 +364,7 @@
     <div class="wrap">
       <div class="head reveal">
         <span class="kicker">What you will learn</span>
-        <h2>38 topics, every one marked and linked</h2>
+        <h2>48 topics, every one marked and linked</h2>
         <p>Click any topic to jump straight to the place it is taught: a notebook, a section of the notes, or a part of the Convolution Lab.</p>
       </div>
       <p class="legend reveal"><span class="tick" aria-hidden="true">✓</span> covered and ready to learn &nbsp;&nbsp; <span class="tick tick--soon" aria-hidden="true">⏳</span> coming soon</p>
@@ -407,6 +421,21 @@
             <li><a href="Day-4/convolution_lab.html#concept-g"><span class="tick" aria-hidden="true">✓</span><span><b>Multi-channel input</b><small>RGB filters and parameter counting</small></span></a></li>
             <li><a href="Day-4/convolution_lab.html#practice"><span class="tick" aria-hidden="true">✓</span><span><b>Hand-calculation practice</b><small>8 exercises with hidden solutions</small></span></a></li>
             <li><a href="Day-4/convolution_lab.html#notes"><span class="tick" aria-hidden="true">✓</span><span><b>Revision and self-test</b><small>formulas, common mistakes, 5 questions</small></span></a></li>
+          </ul>
+        </div>
+        <div class="card topic-col reveal">
+          <div class="topic-col__head"><span class="topic-col__day">Day 05</span><h3>Padding and strides</h3><span class="count">10 topics</span></div>
+          <ul class="tlist">
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-5/README.md#1-why-padding" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Why padding</b><small>the image shrinks and border pixels get lost</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-5/README.md#2-how-padding-works" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>How padding works</b><small>zero padding, padded size n + 2p</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-5/README.md#3-valid-vs-same-padding" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Valid vs same padding</b><small>Keras padding=&#x27;valid&#x27; and &#x27;same&#x27;</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-5/README.md#4-how-much-padding" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>How much padding</b><small>p = (f − 1) / 2, why it is 1 for a 3×3 filter</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-5/README.md#5-what-is-stride" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>What is stride</b><small>s = 1 vs s = 2, how far the filter jumps</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-5/README.md#6-why-use-a-stride" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Why use a stride</b><small>faster, fewer parameters, higher-level features</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-5/README.md#7-the-output-size-formula" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Output size formula</b><small>⌊(n + 2p − f) / s⌋ + 1 with a worked example</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-5/README.md#8-padding-and-strides-in-keras" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Padding and strides in Keras</b><small>Conv2D(..., padding, strides)</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-5/README.md#9-the-experiment-same-vs-valid-vs-stride-2" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Same vs valid vs stride 2</b><small>3 MNIST models: 3.23 M vs 2.00 M vs 0.82 M params</small></span></a></li>
+            <li><a href="https://github.com/shamiulriyad/Computer-Vision-Learning/blob/main/Day-5/README.md#10-revision" target="_blank" rel="noopener"><span class="tick" aria-hidden="true">✓</span><span><b>Revision and common mistakes</b><small>formula sheet and the errors to avoid</small></span></a></li>
           </ul>
         </div>
       </div>

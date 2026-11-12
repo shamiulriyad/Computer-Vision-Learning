@@ -6,12 +6,13 @@
 
 <a href="https://shamiulriyad.github.io/Computer-Vision-Learning/"><img src="https://img.shields.io/badge/Live_Website-Visit-4357e6?style=for-the-badge&logo=githubpages&logoColor=white" alt="Live website"></a>
 <a href="https://shamiulriyad.github.io/Computer-Vision-Learning/Day-4/convolution_lab.html"><img src="https://img.shields.io/badge/Convolution_Lab-Try_it_live-ffb534?style=for-the-badge&logo=html5&logoColor=black" alt="Convolution Lab: try it live"></a>
-<a href="Day-4/README.md"><img src="https://img.shields.io/badge/Notes-Day_4-0891b2?style=for-the-badge&logo=readthedocs&logoColor=white" alt="Day-4 notes"></a>
+<a href="Day-5/README.md"><img src="https://img.shields.io/badge/New-Day_5_Padding_%26_Strides-0891b2?style=for-the-badge&logo=readthedocs&logoColor=white" alt="Day-5 notes: padding and strides"></a>
 
 <img src="https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.11">
 <img src="https://img.shields.io/badge/OpenCV-5C3EE8?style=flat-square&logo=opencv&logoColor=white" alt="OpenCV">
 <img src="https://img.shields.io/badge/NumPy-013243?style=flat-square&logo=numpy&logoColor=white" alt="NumPy">
 <img src="https://img.shields.io/badge/Jupyter-F37626?style=flat-square&logo=jupyter&logoColor=white" alt="Jupyter">
+<img src="https://img.shields.io/badge/Keras-D00000?style=flat-square&logo=keras&logoColor=white" alt="Keras">
 <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-22c55e?style=flat-square" alt="MIT licence"></a>
 
 </div>
@@ -24,11 +25,13 @@
 |---|---|---|
 | 🌐 | **[Website](https://shamiulriyad.github.io/Computer-Vision-Learning/)** | Homepage with every day of the journey |
 | ▶️ | **[Convolution Lab (live)](https://shamiulriyad.github.io/Computer-Vision-Learning/Day-4/convolution_lab.html)** | Interactive page: watch a filter slide, then practise by hand |
+| 🆕 | **[Day-5 notes](Day-5/README.md)** | Padding and strides: theory, formulas, Keras experiment |
+| 📓 | **[Day-5 notebook](Day-5/padding_and_strides_demo.ipynb)** | Same vs valid vs stride 2 on MNIST |
 | 📘 | **[Day-4 notes](Day-4/README.md)** | Convolution maths: worked example, formulas, sources |
 | 📗 | **[Day-3 notes](Day-3/README.md)** | CNN theory with diagrams and worked examples |
 | 📓 | **[Day-2 notebooks](Day-2/)** | 8 OpenCV notebooks |
 
-## 📚 What you will learn (38 topics)
+## 📚 What you will learn (48 topics)
 
 Every topic is marked ✅ and linked to the exact place it is taught. Click a topic to start.
 
@@ -95,15 +98,53 @@ Every topic is marked ✅ and linked to the exact place it is taught. Click a to
 
 </details>
 
+<details open>
+<summary><b>Day 5 · Padding and strides: 10 topics</b></summary>
+
+| | Topic | You will learn |
+|:---:|---|---|
+| ✅ | [**Why padding**](Day-5/README.md#1-why-padding) | the image shrinks and border pixels get lost |
+| ✅ | [**How padding works**](Day-5/README.md#2-how-padding-works) | zero padding, padded size n + 2p |
+| ✅ | [**Valid vs same padding**](Day-5/README.md#3-valid-vs-same-padding) | Keras `padding='valid'` and `'same'` |
+| ✅ | [**How much padding**](Day-5/README.md#4-how-much-padding) | p = (f − 1) / 2, why it is 1 for a 3×3 filter |
+| ✅ | [**What is stride**](Day-5/README.md#5-what-is-stride) | s = 1 vs s = 2, how far the filter jumps |
+| ✅ | [**Why use a stride**](Day-5/README.md#6-why-use-a-stride) | faster, fewer parameters, higher-level features |
+| ✅ | [**Output size formula**](Day-5/README.md#7-the-output-size-formula) | ⌊(n + 2p − f) / s⌋ + 1 with a worked example |
+| ✅ | [**Padding and strides in Keras**](Day-5/README.md#8-padding-and-strides-in-keras) | `Conv2D(..., padding, strides)` |
+| ✅ | [**Same vs valid vs stride 2**](Day-5/README.md#9-the-experiment-same-vs-valid-vs-stride-2) | 3 MNIST models: 3.23 M vs 2.00 M vs 0.82 M params |
+| ✅ | [**Revision and common mistakes**](Day-5/README.md#10-revision) | formula sheet and the errors to avoid |
+
+</details>
+
 ## 🗺️ Learning journey
 
 | Day | Topic | Status | Open |
 |:---:|---|:---:|---|
-| **04** | The convolution operation (maths first) | ✅ New | [▶️ Live lab](https://shamiulriyad.github.io/Computer-Vision-Learning/Day-4/convolution_lab.html) · [Notes](Day-4/README.md) · [Code](Day-4/) |
+| **05** | Padding and strides in a CNN | ✅ New | [Notes](Day-5/README.md) · [Notebook](Day-5/padding_and_strides_demo.ipynb) · [Quick notes](Day-5/learning.txt) |
+| **04** | The convolution operation (maths first) | ✅ Done | [▶️ Live lab](https://shamiulriyad.github.io/Computer-Vision-Learning/Day-4/convolution_lab.html) · [Notes](Day-4/README.md) · [Code](Day-4/) |
 | **03** | Convolutional Neural Networks (theory) | ✅ Done | [Notes](Day-3/README.md) · [Notebook](Day-3/filters_demo.ipynb) |
 | **02** | OpenCV fundamentals | ✅ Done | [Notebooks](Day-2/) |
 
 ---
+
+## Day 5: Padding and strides
+
+📗 **[Read the full notes](Day-5/README.md)** · 📓 **[padding_and_strides_demo.ipynb](Day-5/padding_and_strides_demo.ipynb)** · 📝 **[Quick notes](Day-5/learning.txt)**
+
+How padding and stride decide the size of every feature map, and what that does to the size of the model.
+
+- **Padding**: why (shrinking images, lost borders), zero padding, `valid` vs `same`, `p = (f − 1) / 2`
+- **Stride**: what it is, and why `s > 1` means faster training and higher-level features
+- **Formula**: `⌊(n + 2p − f) / s⌋ + 1`, with a worked example (28 → 14)
+- **Experiment**: the same Keras CNN on MNIST three times:
+
+| Model | Conv output | Total params |
+|---|---|---:|
+| `same`, stride 1 | 28 → 28 → 28 | 3,231,498 |
+| `valid`, stride 1 | 26 → 24 → 22 | 2,002,698 |
+| `same`, stride 2 | 14 → 14 → 14 | 823,050 |
+
+Conv layers always have 320 + 9,248 + 9,248 parameters; the difference is all in the Dense layer after `Flatten`. One stride of 2 cuts the model to about a quarter.
 
 ## Day 4: The convolution operation
 
@@ -161,6 +202,7 @@ The notebook compares RGB and BGR, splits colour channels, and runs a Sobel filt
 git clone https://github.com/shamiulriyad/Computer-Vision-Learning.git
 cd Computer-Vision-Learning
 pip install -r requirements.txt     # opencv-python, matplotlib
+pip install tensorflow              # only for the Day-5 notebook
 ```
 
 Open the notebooks with Jupyter or VS Code (Jupyter extension), **from inside their day folder** (for example `Day-2/`) so the `data/...` image paths resolve. The Convolution Lab needs nothing: open the [live link](https://shamiulriyad.github.io/Computer-Vision-Learning/Day-4/convolution_lab.html), or open `Day-4/convolution_lab.html` locally.
@@ -172,7 +214,8 @@ Computer-Vision-Learning/
 ├── index.html          website homepage (GitHub Pages)
 ├── Day-2/              OpenCV notebooks + data/ sample images
 ├── Day-3/              CNN notes, figures, filters notebook
-└── Day-4/              Convolution Lab (HTML/JS), notes, NumPy verifier
+├── Day-4/              Convolution Lab (HTML/JS), notes, NumPy verifier
+└── Day-5/              Padding & strides notes + Keras notebook
 ```
 
 <details>
